@@ -6,13 +6,13 @@
 
 | Area | Done | Change |
 |---|---|---|
-| Backend | **about 77%** | Was 72%. Production hardening, tests on the analysis, any-size areas |
-| Data | **about 42%** | Was 55%. **Recalibrated down:** the old figure counted having some of each ingredient, not how much of the district we cover (see below) |
+| Backend | **about 80%** | Was 72%. Production hardening, tests on the analysis, any-size areas, **whole Partur taluka covered** |
+| Data | **about 49%** | Was 55% before recalibration, 42% after it, now up with whole-Partur. The old figure counted having some of each ingredient, not how much of the district we cover (see below) |
 | Frontend | about 55% | Unchanged. Farmer view, evidence-pack screen, Marathi, offline not built |
-| Validation | about 52% | Unchanged. Backtest corrected for Mantha; still no ground observations |
-| **Whole project** | **about 58%** | Was 60%. Lower only because data was recalibrated |
+| Validation | about 56% | Was 52%. Backtest corrected for Mantha; **whole-taluka check done**; still no ground observations |
+| **Whole project** | **about 62%** | Was 60%. Data was recalibrated down, then real work moved it up |
 
-Commits: 116 on `main`. Tests: 28 passing.
+Commits: 127 on `main`. Tests: 29 passing.
 
 ## Why backend is about 77% and data about 42%, not higher
 
@@ -23,20 +23,20 @@ Commits: 116 on `main`. Tests: 28 passing.
 | Piece | Weight | Done | What is still missing |
 |---|---|---|---|
 | Data pipeline (fetch, farmland mask, rainfall) | 20% | 88% | Radar gap-fill. Rainfall is coarse (about 50 km) |
-| Analysis logic (levels, crop-age alignment, tuning, simple-rule comparison) | 20% | 78% | A test on **new places**; persistence rules; the whole-taluka version is built but not yet checked |
+| Analysis logic (levels, crop-age alignment, tuning, simple-rule comparison) | 20% | 80% | A test on **new places**; persistence rules. Checked on a whole taluka (Partur) only |
 | Web service features (roles, checks, photos, evidence pack, orders, admin users, password change) | 20% | 92% | Offline sync, PDF evidence pack |
 | Security and operations | 15% | 75% | The Dockerfile is **written but never built**; no HTTPS, monitoring or scheduled backups on a real host |
 | Tests | 10% | 88% | No end-to-end pipeline test; no website tests |
-| **Scale** (cover real areas, not samples) | 15% | **35%** | Only one taluka is being covered whole; the other seven are 4 km samples |
+| **Scale** (cover real areas, not samples) | 15% | **55%** | One whole taluka (Partur) is covered and the pipeline handles any area; the other seven talukas are still 4 km samples |
 
-The biggest single reason backend is not higher is **scale**: 15% of the weight at 35%.
+The biggest single reason backend is not higher is still **scale**: 15% of the weight at 55%, with seven of eight talukas sampled rather than covered.
 
 ### Data
 
 | Piece | Weight | Done | What is still missing |
 |---|---|---|---|
 | Satellite pictures, depth in time | 15% | 90% | The 2018 season |
-| Satellite pictures, **spatial coverage** | 25% | **5%** | The eight 4 km boxes cover **1.65% of Jalna district** (about 128 of 7,688 km², measured from the open taluka outlines). Whole-Partur adds about 9.7 points of the district when it finishes |
+| Satellite pictures, **spatial coverage** | 25% | **34%** | Whole Partur (762 km²) plus seven 4 km boxes (112 km²) is about **874 km², 11% of Jalna district** (7,688 km², measured from the open taluka outlines). Score is about 3 points per percent of the district covered; the eight boxes alone were 1.65%, worth 5 |
 | Rainfall | 10% | 80% | Finer than a 50 km grid; two boxes can share a cell |
 | Farmland mask | 10% | 88% | It says "cropland", not which crop |
 | Boundaries | 10% | 85% | State, district and taluka done. Villages and plot outlines are not |
@@ -44,7 +44,7 @@ The biggest single reason backend is not higher is **scale**: 15% of the weight 
 | Official records (drought list, damage records) | 10% | 15% | The state total is known; which Jalna talukas are on the list is not |
 | **Field observations** | 15% | **0%** | The kit is ready; no plot has been visited |
 
-**Why I lowered data from 55% to 42%.** The earlier figure gave credit for having some of each ingredient. Counting how much of the district we actually cover and the zero field observations, it was too generous. Three rows hold the data score down: spatial coverage (25% of the weight, 5% done), field observations (15% of the weight, 0%) and radar (0%).
+**Why I lowered data from 55% when I recalibrated it.** The earlier figure gave credit for having some of each ingredient. Counting how much of the district we actually cover and the zero field observations, it was too generous. Three rows hold the data score down: spatial coverage (25% of the weight, 34% done), field observations (15% of the weight, 0%) and radar (0%).
 
 ## What the numbers now say (see `validation/BACKTEST.md`; Mantha corrected on 4 November)
 - **Separates 2026 from ordinary seasons in 5 of 8 sample areas.** Across all areas: 30% of visible farmland flagged in 2026, 8% in ordinary seasons (46 taluka-seasons).
