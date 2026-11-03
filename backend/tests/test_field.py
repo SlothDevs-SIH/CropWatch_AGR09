@@ -60,3 +60,18 @@ def test_end_to_end_with_made_up_data(tmp_path):
     kp.write_text(kp.read_text() + " ")                                                                   # tampering with the key must be refused
     with pytest.raises(SystemExit):
         evaluate(kp, op, meta)
+
+
+def test_spare_counts_only_when_its_main_plot_was_unusable(tmp_path):
+    kf = ["cell_id", "taluka", "role", "reserve_rank", "group", "level", "deviation", "first_flag_date", "as_of", "lat", "lon"]
+    mk = lambda cid, role, grp: {"cell_id": cid, "taluka": "Test", "role": role, "reserve_rank": 1 if role == "reserve" else 0, "group": grp, "level": "urgent",
+                                  "deviation": -0.3, "first_flag_date": "2026-09-10", "as_of": "2026-10-29", "lat": 0, "lon": 0}
+    kp = tmp_path / "key.csv"; write(kp, [mk("A", "primary", "flagged"), mk("B", "primary", "flagged"), mk("S1", "reserve", "flagged"), mk("S2", "reserve", "flagged")], kf)
+    bp = tmp_path / "blind.csv"; write(bp, [{"cell_id": "A", "replaces": ""}, {"cell_id": "B", "replaces": ""}, {"cell_id": "S1", "replaces": "A"}, {"cell_id": "S2", "replaces": "B"}], ["cell_id", "replaces"])
+    of = ["cell_id", "visit_status", "skip_reason", "consent_given", "severity_0to3", "main_cause", "first_stress_date"]
+    row = lambda cid, status="visited", sev="2", reason="": {"cell_id": cid, "visit_status": status, "skip_reason": reason, "consent_given": "yes", "severity_0to3": sev, "main_cause": "dry_spell", "first_stress_date": ""}
+    op = tmp_path / "obs.csv"
+    write(op, [row("A", "not_visited", "", "no access"), row("S1"), row("B"), row("S2")], of)   # S1 replaces unvisited A (counts); S2 replaces B which WAS visited (must not count)
+    r = evaluate(kp, op, None, bp)
+    assert r["n_visits_used"] == 2 and ("S2", "spare used although its main plot was not marked unusable") in [tuple(x) for x in r["skipped"]]
+    assert any(c.startswith("not visited: no access") for _, c in r["skipped"])
