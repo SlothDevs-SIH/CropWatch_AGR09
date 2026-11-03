@@ -7,12 +7,12 @@
 | Area | Done | Change |
 |---|---|---|
 | Backend | **about 82%** | Was 72%. Production hardening, tests on the analysis, any-size areas, whole Partur covered, on-demand loading, per-plot series, areas list |
-| Data | **about 49%** | Was 55% before recalibration, 42% after it, now up with whole-Partur. The old figure counted having some of each ingredient, not how much of the district we cover (see below) |
+| Data | **about 60%** | Was 42% after recalibration. Whole Partur and whole Ambad are in (about 26% of the district); six talukas are still downloading |
 | Frontend | **about 75%** | Was 55%. All role screens, season replay, Marathi, offline shell and queue built and checked in a browser; **not yet tested on a real phone or with the network off** |
 | Validation | about 56% | Was 52%. Backtest corrected for Mantha; **whole-taluka check done**; still no ground observations |
-| **Whole project** | **about 67%** | Was 60%. Frontend built; data coverage still running |
+| **Whole project** | **about 69%** | Was 60%. Frontend built; coverage grew; six whole talukas still downloading |
 
-Commits: 129 on `main`. Tests: 30 passing.
+Commits: 152 on `main`. Tests: 30 passing.
 
 ## Why backend is about 77% and data about 42%, not higher
 
@@ -36,7 +36,7 @@ The biggest single reason backend is not higher is still **scale**: 15% of the w
 | Piece | Weight | Done | What is still missing |
 |---|---|---|---|
 | Satellite pictures, depth in time | 15% | 90% | The 2018 season |
-| Satellite pictures, **spatial coverage** | 25% | **34%** | Whole Partur (762 km²) plus seven 4 km boxes (112 km²) is about **874 km², 11% of Jalna district** (7,688 km², measured from the open taluka outlines). Score is about 3 points per percent of the district covered; the eight boxes alone were 1.65%, worth 5 |
+| Satellite pictures, **spatial coverage** | 25% | **78%** | Whole Partur (762 km²) and whole Ambad (1,143 km²) plus six 4 km boxes (96 km²) is about **2,000 km², 26% of Jalna district** (7,688 km², measured from the open taluka outlines). Score is about 3 points per percent of the district covered, capped at 100. The eight boxes alone were 1.65%, worth 5. The remaining six talukas are downloading |
 | Rainfall | 10% | 80% | Finer than a 50 km grid; two boxes can share a cell |
 | Farmland mask | 10% | 88% | It says "cropland", not which crop |
 | Boundaries | 10% | 85% | State, district and taluka done. Villages and plot outlines are not |
@@ -44,7 +44,7 @@ The biggest single reason backend is not higher is still **scale**: 15% of the w
 | Official records (drought list, damage records) | 10% | 15% | The state total is known; which Jalna talukas are on the list is not |
 | **Field observations** | 15% | **0%** | The kit is ready; no plot has been visited |
 
-**Why I lowered data from 55% when I recalibrated it.** The earlier figure gave credit for having some of each ingredient. Counting how much of the district we actually cover and the zero field observations, it was too generous. Three rows hold the data score down: spatial coverage (25% of the weight, 34% done), field observations (15% of the weight, 0%) and radar (0%).
+**Why I lowered data from 55% when I recalibrated it.** The earlier figure gave credit for having some of each ingredient. Counting how much of the district we actually cover and the zero field observations, it was too generous. Two rows now hold the data score down: field observations (15% of the weight, 0%) and radar (0%); then official records (15% done).
 
 ### Frontend
 
@@ -68,6 +68,7 @@ There are **no automated tests for the website**; the checks so far were done by
 - **Beats the simple rule clearly.** At the same false-alarm rate the simple "less green than last reading" rule flags 2026 *less* (5%) than ordinary seasons. It cannot see this drought.
 - **Not an early warning of weeks.** The signal appears around the 25 September order: +16 and +6 days in two areas, -4, -4 and -14 in others, none in three.
 - **The signal holds across a whole taluka, but the 4 km box overstated it.** For Partur as a whole (7,675 farmland cells), 47% was flagged at the order date against 2% to 9% in every ordinary season. The box had said 69%. Detection was 4 days after the order for the whole taluka, against 16 days before it for the box.
+- **The box overstated Ambad as well.** Whole Ambad is 52 points over the usual share for the date; its box said 69. So the district ranking compares every taluka on its box (like for like) and shows the whole-taluka result beside it, and will switch to whole talukas only when all eight are ready.
 - **A sample-box error was found and fixed.** The Mantha box had been placed in the wrong district (Lonar). It was corrected and everything rebuilt; Mantha is now the strongest signal of the eight.
 - **2026 rainfall was about 52% of the 2018 to 2025 average** at Jalna and Partur, consistent with a reported deficit near 46%.
 
