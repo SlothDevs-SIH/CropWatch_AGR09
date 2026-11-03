@@ -3,6 +3,7 @@ DEMO_PASSWORD = "demo1234"   # test value for the local demo; change before any 
 
 DISTRICT_OFFICER = {"email": "district@jalna.demo", "name": "District Officer, Jalna (demo)"}
 ADMIN = {"email": "admin@cropwatch.demo", "name": "Crop Watch team (demo)"}
+CENTRE = {"email": "centre@partur.demo", "name": "Service centre operator, Partur (demo)"}
 TALUKA_NAMES = ["Partur", "Jalna", "Badnapur", "Ambad", "Ghansawangi", "Mantha", "Jafrabad", "Bhokardan"]
 # Farmers are made up; each is given plot-sized cells in Partur. "stress" picks flagged cells, "ok" picks healthy ones.
 FARMERS = [
