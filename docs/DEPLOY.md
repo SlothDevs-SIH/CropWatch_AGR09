@@ -5,6 +5,9 @@
 ## What runs
 One container: the web service (FastAPI) serving the built website. Results, rainfall and validation files are baked into the image. Logins, field checks, reports, orders, the audit log and photos live in a **data folder** (`/data`) that must be a persistent volume.
 
+## Pictures
+The before/after pictures live in `data/imagery/` and are **not** in the Docker image or in git (they are large). Render them first (`render_imagery.py`) and copy the folder to the host, or mount it into the container at `/app/data/imagery`. Without them the slider simply shows a short note.
+
 ## Build and run
 ```bash
 docker build -t cropwatch .

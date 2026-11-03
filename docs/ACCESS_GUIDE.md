@@ -42,7 +42,7 @@ The site uses `#` links, so you can bookmark or share them.
 | `#/about` | How it works, limits, who sees what, credits |
 | `#/app/district` | District ranking and map |
 | `#/app/area/PartWhole` | Whole Partur taluka (any area key works, for example `JalnaWhole`, `Partur` for the 4 km box) |
-| `#/app/area/Partur?plot=PAR-r00c02` | The same, opened on one plot |
+| `#/app/area/Partur?plot=PAR-r00c02` | The same, opened on one plot (with its before/after slider) |
 | `#/app/reported` | Plots reported to the district |
 | `#/app/farmer`, `#/app/centre`, `#/app/admin` | Role pages |
 
@@ -53,7 +53,7 @@ The interactive list of every API call is at **http://127.0.0.1:8100/docs**.
 1. **Landing page.** Let the seed sprout. Scroll: the field with the satellite scan, the four-step scene, the map flying from Maharashtra to Jalna. Click **Accuracy** to show you lead with what is *not* measured.
 2. **Sign in as the district officer.** The map flies in over the real taluka outlines. Point at the colours (how unusual for the date) and the ranking. Click the highest-ranked taluka.
 3. **The taluka map.** Thousands of plot-sized cells in 3D. Press **Replay the season** and watch stress spread from June to October. Point at the 25 September marker.
-4. **Click one plot.** The camera swoops down. Show the reason, the chart against past seasons at the same crop age, and the rainfall strip.
+4. **Click one plot.** The camera swoops down. Show the reason, then drag the **Before and after** slider: an ordinary year on the left, 2026 on the right. Then the chart against past seasons at the same crop age, and the rainfall strip.
 5. **Sign in as the farmer** (phone-sized window). Open a plot, press **Stressed**, add a photo. Switch to **मराठी**.
 6. **Back as the taluka officer.** The plot now says **Confirmed**; press **Report to district**. As the district officer, open **Reported**. Finish on **Accuracy**: say plainly what is not yet measured.
 
@@ -63,6 +63,7 @@ The interactive list of every API call is at **http://127.0.0.1:8100/docs**.
 CropWatch/
   start_cropwatch.bat      start the server and open the site
   refresh_results.bat      rebuild results after new satellite data lands
+  render_pictures.bat      pre-render the before/after pictures (slow; do it ahead of time)
   README.md                overview and setup
   Dockerfile               deployment (written, not yet built)
   backend/                 the engine and web service (Python)
@@ -91,7 +92,8 @@ Repository: https://github.com/SlothDevs-SIH/CropWatch_AGR09 (private).
 
 **Still downloading in the background:** Jalna, Badnapur, Ghansawangi, Mantha, Jafrabad and Bhokardan. Each needs two files in `data/raw`: `<Name>Whole.npz` (this season) **and** `<Name>Whole_hist.npz` (2019 to 2022). A taluka is not used until **both** exist, because three past seasons are too weak a "normal" and would give misleading numbers. Check:
 ```bash
-dir CropWatch\dataaw\*Whole*
+dir CropWatch\data
+aw\*Whole*
 ```
 
 **How the ranking behaves.** The district ranking compares like with like. The 4 km boxes overstated both Partur and Ambad, so a ranking that mixed whole talukas with boxes would be unfair. Therefore:
@@ -106,6 +108,21 @@ If a background download stopped, restart the missing one from `CropWatch/backen
 .venv/Scripts/python.exe fetch_cells.py JalnaWhole --years 2019 2020 2021 2022 --tag _hist
 ```
 Area names: `PartWhole`, `JalnaWhole`, `BadnapurWhole`, `AmbadWhole`, `GhansawangiWhole`, `ManthaWhole`, `JafrabadWhole`, `BhokardanWhole`.
+
+## 6b. The before/after pictures
+
+Each plot has a **Before and after** slider in its panel: a typical, ordinary year on the left, 2026 on the right, same place and time of year. Drag the handle to compare.
+
+The pictures are **pre-rendered once** (so nothing renders while you present) into `data/imagery/<area>/`. Check what is ready:
+```bash
+dir CropWatch\data\imagery
+```
+Each ready area has a `meta.json` and `normal.jpg` plus `now.jpg`. To render or re-render, double-click **`render_pictures.bat`**, or from `CropWatch/backend`:
+```bash
+.venv/Scripts/python.exe -u render_imagery.py PartWhole Partur        # chosen areas
+.venv/Scripts/python.exe -u render_imagery.py --force                 # redo everything
+```
+It takes from several minutes (a 4 km box) to well over half an hour (a whole taluka). An area with no pictures yet shows a short note instead of the slider, never a blank. Pictures are not stored in git (large); if you move the project, copy `data/imagery`.
 
 ## 7. Check that it works
 
