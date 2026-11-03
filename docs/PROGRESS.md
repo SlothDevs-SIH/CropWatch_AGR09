@@ -47,7 +47,7 @@ The biggest single reason backend is not higher is **scale**: 15% of the weight 
 **Why I lowered data from 55% to 42%.** The earlier figure gave credit for having some of each ingredient. Counting how much of the district we actually cover and the zero field observations, it was too generous. Three rows hold the data score down: spatial coverage (25% of the weight, 5% done), field observations (15% of the weight, 0%) and radar (0%).
 
 ## What the numbers now say (see `validation/BACKTEST.md`; Mantha corrected on 4 November)
-- **Separates 2026 from ordinary seasons in 5 of 8 sample areas.** Across all areas: 26% of visible farmland flagged in 2026, 8% in ordinary seasons (45 taluka-seasons).
+- **Separates 2026 from ordinary seasons in 5 of 8 sample areas.** Across all areas: 30% of visible farmland flagged in 2026, 8% in ordinary seasons (46 taluka-seasons).
 - **Beats the simple rule clearly.** At the same false-alarm rate the simple "less green than last reading" rule flags 2026 *less* (5%) than ordinary seasons. It cannot see this drought.
 - **Not an early warning of weeks.** The signal appears around the 25 September order: +16 and +6 days in two areas, -4, -4 and -14 in others, none in three.
 - **2026 rainfall was about 52% of the 2018 to 2025 average** at Jalna and Partur, consistent with a reported deficit near 46%.
