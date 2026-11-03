@@ -146,6 +146,13 @@ def main():
         pick = max(ok, key=lambda s: s["gap"]) if ok else min(sweep, key=lambda s: s["false_alarm"] if s["false_alarm"] is not None else 9)
         th, align = {"watch": pick["watch"], "urgent": pick["watch"] * 2, "urgent_prior": pick["watch"]}, pick["aligned"]
         print("chosen on seasons other than 2026:", th, "aligned" if align else "calendar", "| test 2026 share:", pick["test_2026"])
+        if "--freeze" in sys.argv:
+            # The field sample was registered under certain settings. Keep them, so the website's labels stay the ones the field team tests.
+            meta = json.loads((OUT / "field" / "sample_field_meta.json").read_text())
+            frozen_th, frozen_align = meta["thresholds"], bool(meta["crop_age_aligned"])
+            if (frozen_th, frozen_align) != (th, align):
+                print(f"NOTE: tuning would now choose {th} aligned={align}, but the registered field sample used {frozen_th} aligned={frozen_align}. Keeping the registered settings.")
+            th, align = frozen_th, frozen_align
 
     baseline = None
     if tune:
@@ -190,6 +197,7 @@ def main():
                "false_alarm_target": FALSE_ALARM_TARGET}
     if tune:
         payload["thresholds_tuned"] = th
+        payload["frozen_to_field_registration"] = "--freeze" in sys.argv
         payload["simple_baseline"] = baseline
     (OUT / "backtest.json").write_text(json.dumps(payload, indent=1))
     print(json.dumps({n: {k: s[k] for k in ("detection_date", "days_before_order")} for n, s in summary.items()}))
