@@ -1,0 +1,5 @@
+# What the running web service needs (the data-building scripts need requirements.txt as well).
+fastapi
+uvicorn[standard]
+numpy
+python-multipart
