@@ -114,7 +114,17 @@ def main():
     shuffled = rows[:]
     random.Random(a.seed + 1).shuffle(shuffled)                   # the visiting order carries no information about the label
     OUT.mkdir(parents=True, exist_ok=True)
-    blind = [{"visit_order": i + 1, "taluka": r["taluka"], "cell_id": r["cell_id"], "role": r["role"], "reserve_note": "use only if an earlier plot cannot be visited" if r["role"] == "reserve" else "",
+    # A spare replaces one specific primary of the SAME group and taluka (the j-th spare replaces the j-th primary), fixed now,
+    # so the team can swap without being told which group anything is in.
+    # Pairing stays inside the same taluka AND the same group, so a swap never means a long trip and never changes the group balance.
+    replaces = {}
+    for g in ("flagged", "unflagged"):
+        for t in a.talukas:
+            prim = [r["cell_id"] for r in rows if r["group"] == g and r["taluka"] == t and r["role"] == "primary"]
+            for j, r in enumerate([r for r in rows if r["group"] == g and r["taluka"] == t and r["role"] == "reserve"]):
+                replaces[r["cell_id"]] = prim[j]
+    blind = [{"visit_order": i + 1, "taluka": r["taluka"], "cell_id": r["cell_id"], "role": r["role"], "replaces": replaces.get(r["cell_id"], ""),
+              "reserve_note": f"use only if plot {replaces[r['cell_id']]} cannot be visited" if r["role"] == "reserve" else "",
               "lat": r["lat"], "lon": r["lon"], "cell_size_m": 200, "maps_link": f"https://www.google.com/maps?q={r['lat']},{r['lon']}"} for i, r in enumerate(shuffled)]
     with open(OUT / "sample_field.csv", "w", newline="", encoding="utf-8") as fh:
         w = csv.DictWriter(fh, fieldnames=list(blind[0])); w.writeheader(); w.writerows(blind)
