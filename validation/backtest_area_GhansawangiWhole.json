@@ -1,0 +1,47 @@
+{
+ "area": "GhansawangiWhole",
+ "taluka": "Ghansawangi",
+ "thresholds": {
+  "watch": -0.18,
+  "urgent": -0.36,
+  "urgent_prior": -0.18
+ },
+ "aligned": true,
+ "seasons": [
+  2019,
+  2020,
+  2021,
+  2022,
+  2023,
+  2024,
+  2025,
+  2026
+ ],
+ "share_at_order_date": {
+  "whole_taluka": {
+   "2019": 0.038,
+   "2020": 0.066,
+   "2021": 0.021,
+   "2022": 0.015,
+   "2023": 0.036,
+   "2024": 0.043,
+   "2025": 0.034,
+   "2026": 0.436
+  },
+  "sample_box": {
+   "2019": 0.138,
+   "2020": 0.199,
+   "2021": 0.106,
+   "2022": 0.03,
+   "2023": 0.08,
+   "2024": 0.115,
+   "2025": 0.091,
+   "2026": 0.05
+  }
+ },
+ "detection_days_before_order": {
+  "whole_taluka": -4,
+  "sample_box": null
+ },
+ "cells": 11841
+}
