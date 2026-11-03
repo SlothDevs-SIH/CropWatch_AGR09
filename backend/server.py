@@ -14,9 +14,11 @@ import sqlite3
 import time
 import uuid
 from contextlib import asynccontextmanager
+from functools import lru_cache
 from pathlib import Path
 
 from fastapi import Depends, FastAPI, File, Header, HTTPException, Request, UploadFile
+from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.responses import FileResponse, HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
@@ -36,6 +38,7 @@ async def lifespan(_app):
 
 
 app = FastAPI(title="Crop Watch", lifespan=lifespan)
+app.add_middleware(GZipMiddleware, minimum_size=1000)      # map data compresses about eight to one
 
 
 @app.middleware("http")
@@ -112,18 +115,26 @@ def audit(who: str, role: str, action: str, detail: str = ""):
 
 
 # ---------- data ----------
-PLOTS: dict[str, dict] = {}      # plot id -> feature
-TALUKA_GEO: dict[str, dict] = {}
+PLOTS: dict[str, dict] = {}      # plot id -> {"properties": ...}. Geometry is not kept here; areas are read from disk on demand.
+TALUKA_GEO: dict[str, dict] = {}  # area key -> {"properties": summary}
+AREA_FILE: dict[str, Path] = {}
 
 
 def load_results():
-    PLOTS.clear(); TALUKA_GEO.clear()
+    PLOTS.clear(); TALUKA_GEO.clear(); AREA_FILE.clear(); _read_area.cache_clear()
     for f in RES.glob("taluka_*.geojson"):
         g = json.loads(f.read_text())
         name = g["properties"]["taluka"]
-        TALUKA_GEO[name] = g
+        TALUKA_GEO[name] = {"properties": g["properties"]}
+        AREA_FILE[name] = f
         for ft in g["features"]:
-            PLOTS[ft["properties"]["id"]] = ft
+            PLOTS[ft["properties"]["id"]] = {"properties": ft["properties"]}
+        del g                                                    # the big polygons are dropped again; only the small properties stay in memory
+
+
+@lru_cache(maxsize=2)
+def _read_area(name: str) -> dict:
+    return json.loads(AREA_FILE[name].read_text())
 
 
 def init_db():
@@ -185,8 +196,16 @@ def current_user(authorization: str = Header(default="")):
     return dict(u)
 
 
+def home_area(u):
+    """Where this user lands: officers open their whole taluka if we have it, farmers their own plots' area."""
+    if u["role"] == "taluka_officer":
+        whole = [k for k, g in TALUKA_GEO.items() if g["properties"].get("parent_taluka") == u["taluka"] and g["properties"].get("kind") == "whole_taluka"]
+        return whole[0] if whole else u["taluka"]
+    return u["taluka"] if u["role"] == "farmer" else None
+
+
 def public(u):
-    return {"id": u["id"], "email": u["email"], "name": u["name"], "role": u["role"], "taluka": u["taluka"]}
+    return {"id": u["id"], "email": u["email"], "name": u["name"], "role": u["role"], "taluka": u["taluka"], "home_area": home_area(u)}
 
 
 FAILS: dict[str, list[float]] = {}     # sign-in failures per email and address, newest last
@@ -409,29 +428,62 @@ def district(u=Depends(current_user)):
     d = json.loads((RES / "district.json").read_text())
     _, reports = all_state()
     for t in d["talukas"]:
-        t["reported"] = sum(1 for r in reports.values() if r["taluka"] == t["taluka"])
+        t["reported"] = sum(1 for r in reports.values() if r["taluka"] == t.get("parent_taluka", t["taluka"]))
     return d
 
 
-@app.get("/api/talukas/{name}")
-def taluka(name: str, u=Depends(current_user)):
+HEAVY = ("series_2026", "series_normal", "reason")
+
+
+def _visible_features(name: str, u):
+    """Features of an area this user may see, with their verification status. Farmers get only their own plots."""
     if name not in TALUKA_GEO:
         raise HTTPException(404, "Unknown taluka")
     if not can_see_taluka(u, name) and u["role"] != "farmer":
         raise HTTPException(403, "Not your taluka")
     mine = owned_ids(u["id"]) if u["role"] == "farmer" else None
-    checks, reports = all_state()
-    g = TALUKA_GEO[name]
-    feats = []
-    for ft in g["features"]:
-        p = dict(ft["properties"])
-        if mine is not None and p["id"] not in mine:
-            continue
-        p["status"] = status_for(p["level"], checks.get(p["id"], []), p["id"] in reports)
-        feats.append({"type": "Feature", "properties": p, "geometry": ft["geometry"]})
+    g = _read_area(name)
+    feats = [ft for ft in g["features"] if mine is None or ft["properties"]["id"] in mine]
     if mine is not None and not feats:
         raise HTTPException(403, "Not your taluka")
-    return {"type": "FeatureCollection", "properties": g["properties"], "features": feats}
+    return g, feats
+
+
+@app.get("/api/talukas/{name}")
+def taluka(name: str, u=Depends(current_user)):
+    g, feats = _visible_features(name, u)
+    checks, reports = all_state()
+    out = []
+    for ft in feats:
+        p = {k: v for k, v in ft["properties"].items() if k not in HEAVY}          # the plot panel asks for the detail of one plot
+        p["status"] = status_for(p["level"], checks.get(p["id"], []), p["id"] in reports)
+        out.append({"type": "Feature", "properties": p, "geometry": ft["geometry"]})
+    return {"type": "FeatureCollection", "properties": g["properties"], "features": out}
+
+
+@app.get("/api/talukas/{name}/series")
+def taluka_series(name: str, u=Depends(current_user)):
+    """Per-plot greenness this season and the normal for the same crop age, in thousandths, so the website can replay the season."""
+    g, feats = _visible_features(name, u)
+    q = lambda arr: [None if v is None else round(v * 1000) for v in arr]
+    ids, now, normal = [], [], []
+    for ft in feats:
+        p = ft["properties"]
+        if p.get("series_2026"):
+            ids.append(p["id"]); now.append(q(p["series_2026"])); normal.append(q(p["series_normal"]))
+    return {"bins_start_doy": [152 + 10 * b for b in range(16)], "ids": ids, "now": now, "normal": normal, "unit": "thousandths of greenness (NDVI)"}
+
+
+@app.get("/api/areas")
+def areas(u=Depends(current_user)):
+    """The areas this user can open: sample boxes and whole-taluka areas, with what each covers."""
+    out = []
+    for key, g in sorted(TALUKA_GEO.items()):
+        p = g["properties"]
+        if u["role"] in ("admin", "district_officer") or (u["role"] == "taluka_officer" and p.get("parent_taluka", key) == u["taluka"]):
+            out.append({"key": key, "parent": p.get("parent_taluka", key), "kind": p.get("kind", "sample_box"), "cell_m": p.get("cell_m", 200),
+                        "farmland_cells": p["farmland_cells"], "as_of": p["as_of"], "centre": p["centre"]})
+    return out
 
 
 @app.get("/api/plots/{pid}")
