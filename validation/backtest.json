@@ -1,0 +1,425 @@
+{
+ "thresholds": {
+  "watch": -0.18,
+  "urgent": -0.36,
+  "urgent_prior": -0.18
+ },
+ "aligned": true,
+ "seasons": [
+  2019,
+  2020,
+  2021,
+  2022,
+  2023,
+  2024,
+  2025,
+  2026
+ ],
+ "per_taluka": {
+  "Partur": {
+   "detection_date": "09-09",
+   "days_before_order": 16,
+   "share_by_year_at_order": {
+    "2019": 0.197,
+    "2020": 0.08,
+    "2021": 0.066,
+    "2022": 0.016,
+    "2023": 0.104,
+    "2024": 0.066,
+    "2025": 0.075,
+    "2026": 0.685
+   },
+   "dry_seasons": [
+    2023
+   ],
+   "rain_to_order_mm": {
+    "2019": 532.3,
+    "2020": 844.7,
+    "2021": 886.5,
+    "2022": 855.8,
+    "2023": 561.0,
+    "2024": 726.5,
+    "2025": 673.4,
+    "2026": 428.4
+   }
+  },
+  "Jalna": {
+   "detection_date": "09-19",
+   "days_before_order": 6,
+   "share_by_year_at_order": {
+    "2019": 0.025,
+    "2020": 0.076,
+    "2021": 0.174,
+    "2022": 0.048,
+    "2023": 0.293,
+    "2024": 0.071,
+    "2025": 0.035,
+    "2026": 0.773
+   },
+   "dry_seasons": [
+    2023,
+    2025
+   ],
+   "rain_to_order_mm": {
+    "2019": 642.7,
+    "2020": 1001.5,
+    "2021": 692.0,
+    "2022": 769.9,
+    "2023": 548.1,
+    "2024": 748.7,
+    "2025": 555.8,
+    "2026": 413.7
+   }
+  },
+  "Badnapur": {
+   "detection_date": "10-09",
+   "days_before_order": -14,
+   "share_by_year_at_order": {
+    "2019": 0.052,
+    "2020": 0.141,
+    "2021": 0.17,
+    "2022": 0.003,
+    "2023": 0.151,
+    "2024": 0.082,
+    "2025": 0.059,
+    "2026": 0.399
+   },
+   "dry_seasons": [
+    2023,
+    2025
+   ],
+   "rain_to_order_mm": {
+    "2019": 642.7,
+    "2020": 1001.5,
+    "2021": 692.0,
+    "2022": 769.9,
+    "2023": 548.1,
+    "2024": 748.7,
+    "2025": 555.8,
+    "2026": 413.7
+   }
+  },
+  "Ambad": {
+   "detection_date": "09-29",
+   "days_before_order": -4,
+   "share_by_year_at_order": {
+    "2019": 0.029,
+    "2020": 0.014,
+    "2021": 0.01,
+    "2022": 0.0,
+    "2023": 0.038,
+    "2024": 0.014,
+    "2025": 0.019,
+    "2026": 0.459
+   },
+   "dry_seasons": [
+    2023
+   ],
+   "rain_to_order_mm": {
+    "2019": 481.5,
+    "2020": 928.1,
+    "2021": 724.8,
+    "2022": 738.6,
+    "2023": 459.4,
+    "2024": 709.5,
+    "2025": 509.7,
+    "2026": 322.5
+   }
+  },
+  "Ghansawangi": {
+   "detection_date": null,
+   "days_before_order": null,
+   "share_by_year_at_order": {
+    "2019": 0.138,
+    "2020": 0.199,
+    "2021": 0.106,
+    "2022": 0.03,
+    "2023": 0.08,
+    "2024": 0.115,
+    "2025": 0.091,
+    "2026": 0.05
+   },
+   "dry_seasons": [
+    2023
+   ],
+   "rain_to_order_mm": {
+    "2019": 532.3,
+    "2020": 844.7,
+    "2021": 886.5,
+    "2022": 855.8,
+    "2023": 561.0,
+    "2024": 726.5,
+    "2025": 673.4,
+    "2026": 428.4
+   }
+  },
+  "Mantha": {
+   "detection_date": "09-29",
+   "days_before_order": -4,
+   "share_by_year_at_order": {
+    "2019": 0.073,
+    "2020": 0.11,
+    "2021": 0.064,
+    "2022": 0.043,
+    "2023": 0.086,
+    "2024": 0.088,
+    "2025": 0.064,
+    "2026": 0.235
+   },
+   "dry_seasons": [
+    2023
+   ],
+   "rain_to_order_mm": {
+    "2019": 710.5,
+    "2020": 915.1,
+    "2021": 864.9,
+    "2022": 908.0,
+    "2023": 628.7,
+    "2024": 811.2,
+    "2025": 691.5,
+    "2026": 499.9
+   }
+  },
+  "Jafrabad": {
+   "detection_date": null,
+   "days_before_order": null,
+   "share_by_year_at_order": {
+    "2019": 0.207,
+    "2020": 0.171,
+    "2021": 0.097,
+    "2022": 0.0,
+    "2023": 0.17,
+    "2024": 0.177,
+    "2025": 0.053,
+    "2026": 0.083
+   },
+   "dry_seasons": [
+    2023
+   ],
+   "rain_to_order_mm": {
+    "2019": 710.5,
+    "2020": 915.1,
+    "2021": 864.9,
+    "2022": 908.0,
+    "2023": 628.7,
+    "2024": 811.2,
+    "2025": 691.5,
+    "2026": 499.9
+   }
+  },
+  "Bhokardan": {
+   "detection_date": null,
+   "days_before_order": null,
+   "share_by_year_at_order": {
+    "2019": 0.13,
+    "2020": 0.309,
+    "2021": 0.223,
+    "2022": 0.108,
+    "2023": 0.025,
+    "2024": 0.265,
+    "2025": 0.18,
+    "2026": 0.279
+   },
+   "dry_seasons": [
+    2023,
+    2025
+   ],
+   "rain_to_order_mm": {
+    "2019": 791.7,
+    "2020": 967.3,
+    "2021": 630.3,
+    "2022": 820.1,
+    "2023": 600.3,
+    "2024": 811.6,
+    "2025": 566.0,
+    "2026": 482.8
+   }
+  }
+ },
+ "sweep": [
+  {
+   "false_alarm": 0.271,
+   "dry_seasons": 0.309,
+   "test_2026": 0.504,
+   "n_ordinary": 45,
+   "n_dry": 11,
+   "aligned": false,
+   "watch": -0.06,
+   "gap": 0.038
+  },
+  {
+   "false_alarm": 0.222,
+   "dry_seasons": 0.259,
+   "test_2026": 0.462,
+   "n_ordinary": 45,
+   "n_dry": 11,
+   "aligned": false,
+   "watch": -0.08,
+   "gap": 0.037
+  },
+  {
+   "false_alarm": 0.179,
+   "dry_seasons": 0.211,
+   "test_2026": 0.419,
+   "n_ordinary": 45,
+   "n_dry": 11,
+   "aligned": false,
+   "watch": -0.1,
+   "gap": 0.032
+  },
+  {
+   "false_alarm": 0.144,
+   "dry_seasons": 0.171,
+   "test_2026": 0.375,
+   "n_ordinary": 45,
+   "n_dry": 11,
+   "aligned": false,
+   "watch": -0.12,
+   "gap": 0.027
+  },
+  {
+   "false_alarm": 0.104,
+   "dry_seasons": 0.119,
+   "test_2026": 0.31,
+   "n_ordinary": 45,
+   "n_dry": 11,
+   "aligned": false,
+   "watch": -0.15,
+   "gap": 0.015
+  },
+  {
+   "false_alarm": 0.075,
+   "dry_seasons": 0.079,
+   "test_2026": 0.248,
+   "n_ordinary": 45,
+   "n_dry": 11,
+   "aligned": false,
+   "watch": -0.18,
+   "gap": 0.004
+  },
+  {
+   "false_alarm": 0.048,
+   "dry_seasons": 0.042,
+   "test_2026": 0.167,
+   "n_ordinary": 45,
+   "n_dry": 11,
+   "aligned": false,
+   "watch": -0.22,
+   "gap": -0.006
+  },
+  {
+   "false_alarm": 0.031,
+   "dry_seasons": 0.022,
+   "test_2026": 0.098,
+   "n_ordinary": 45,
+   "n_dry": 11,
+   "aligned": false,
+   "watch": -0.26,
+   "gap": -0.009
+  },
+  {
+   "false_alarm": 0.27,
+   "dry_seasons": 0.303,
+   "test_2026": 0.501,
+   "n_ordinary": 45,
+   "n_dry": 11,
+   "aligned": true,
+   "watch": -0.06,
+   "gap": 0.033
+  },
+  {
+   "false_alarm": 0.221,
+   "dry_seasons": 0.253,
+   "test_2026": 0.461,
+   "n_ordinary": 45,
+   "n_dry": 11,
+   "aligned": true,
+   "watch": -0.08,
+   "gap": 0.032
+  },
+  {
+   "false_alarm": 0.18,
+   "dry_seasons": 0.209,
+   "test_2026": 0.421,
+   "n_ordinary": 45,
+   "n_dry": 11,
+   "aligned": true,
+   "watch": -0.1,
+   "gap": 0.029
+  },
+  {
+   "false_alarm": 0.147,
+   "dry_seasons": 0.172,
+   "test_2026": 0.381,
+   "n_ordinary": 45,
+   "n_dry": 11,
+   "aligned": true,
+   "watch": -0.12,
+   "gap": 0.025
+  },
+  {
+   "false_alarm": 0.106,
+   "dry_seasons": 0.125,
+   "test_2026": 0.32,
+   "n_ordinary": 45,
+   "n_dry": 11,
+   "aligned": true,
+   "watch": -0.15,
+   "gap": 0.019
+  },
+  {
+   "false_alarm": 0.077,
+   "dry_seasons": 0.088,
+   "test_2026": 0.26,
+   "n_ordinary": 45,
+   "n_dry": 11,
+   "aligned": true,
+   "watch": -0.18,
+   "gap": 0.011
+  },
+  {
+   "false_alarm": 0.049,
+   "dry_seasons": 0.052,
+   "test_2026": 0.187,
+   "n_ordinary": 45,
+   "n_dry": 11,
+   "aligned": true,
+   "watch": -0.22,
+   "gap": 0.003
+  },
+  {
+   "false_alarm": 0.032,
+   "dry_seasons": 0.029,
+   "test_2026": 0.12,
+   "n_ordinary": 45,
+   "n_dry": 11,
+   "aligned": true,
+   "watch": -0.26,
+   "gap": -0.003
+  }
+ ],
+ "dry_definition": "June-October rain at most 80% of the median of pre-2026 seasons",
+ "false_alarm_target": 0.1,
+ "thresholds_tuned": {
+  "watch": -0.18,
+  "urgent": -0.36,
+  "urgent_prior": -0.18
+ },
+ "simple_baseline": {
+  "drop": 0.2,
+  "false_alarm": 0.077,
+  "dry_seasons": 0.07,
+  "test_2026": 0.054,
+  "rule": "flag a cell whose latest clear reading is at least `drop` below its previous clear reading",
+  "days_before_order": {
+   "Partur": null,
+   "Jalna": null,
+   "Badnapur": null,
+   "Ambad": null,
+   "Ghansawangi": null,
+   "Mantha": null,
+   "Jafrabad": null,
+   "Bhokardan": null
+  }
+ }
+}
