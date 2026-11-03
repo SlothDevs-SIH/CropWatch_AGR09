@@ -14,7 +14,7 @@ For each area it makes four pictures (JPEG) and a meta.json, in ../data/imagery/
 
 Each picture is a clear-sky composite of the clearest satellite passes near its target date. Cloud, cloud shadow and haze are removed
 (the satellite's own mask is grown by a few pixels and bright haze is rejected), and the remaining clear pixels from several passes are
-blended with a median. A pixel that was never clear shows as grey. meta.json records which dates went in and how much is clear.
+blended with a median. A pixel that was never clear shows the least-bad view (meta.json says how much of the picture that is). meta.json records which dates went in and how much is clear.
 Source: Copernicus Sentinel-2 L2A (public COG bucket). Contains modified Copernicus Sentinel data.
 """
 import argparse
@@ -38,7 +38,7 @@ from config import AREAS, TALUKAS, area_spec, sample_spec
 OUT = Path(__file__).resolve().parent.parent / "data" / "imagery"
 GOOD = (4, 5, 6)                          # scene classification kept: vegetation, bare soil, water
 BAD = (0, 1, 3, 7, 8, 9, 10, 11)          # no data, saturated, shadow, unclassified, cloud (medium, high), cirrus, snow
-BRIGHT = 0.17                             # blue reflectance above this is cloud or haze, not a crop or soil
+BRIGHT = 0.22                             # blue reflectance above this is cloud or thick haze (white roofs sit below it); thinner haze is handled by the median
 GROW = 2                                  # pixels the cloud mask is grown by, to catch cloud edges
 TARGET_BINS = slice(9, 12)                # 31 Aug to 29 Sep: three 10-day bins around mid-September, to judge a typical year
 FRAMES = {"normal": (258, 15), "now": (258, 15), "aug": (227, 20), "late": (271, 15)}    # frame: (target day of year, window in days)
@@ -76,13 +76,17 @@ def composite(layers):
     return out, filled
 
 
-def median_composite(layers):
-    """Per pixel, the median of the clear values across passes. A single stray cloud edge in one pass cannot survive a median of several."""
+def median_composite(layers, fill_unclear=True):
+    """Per pixel, the median of the clear values across passes. A single stray cloud edge in one pass cannot survive a median of several.
+    Returns (rgb, filled). `filled` marks pixels that were clear in at least one pass. With fill_unclear, pixels that were never clear
+    show the median of the unmasked values (the least-bad view) instead of a hole, so towns and edges do not become grey blobs."""
+    raw = np.stack([rgb for rgb, _ in layers])
     stack = np.stack([np.where(v[..., None], rgb, np.nan) for rgb, v in layers])
     filled = np.isfinite(stack[..., 0]).any(0)
     with np.errstate(all="ignore"):
         med = np.nanmedian(stack, axis=0)
-    return np.where(filled[..., None], med, 0).astype(np.float32), filled
+    out = np.where(filled[..., None], med, np.median(raw, axis=0) if fill_unclear else 0)
+    return out.astype(np.float32), filled
 
 
 def typical_year(means, exclude=()):
@@ -170,7 +174,6 @@ def render_frame(spec, year, doy, window, shape_px):
         used.append(d)
     out, filled = median_composite(layers)
     out8 = stretch(out)
-    out8[~filled] = (80, 80, 80)
     meta = {"year": year, "dates": [d.isoformat() for d in sorted(used)], "target": target.isoformat(), "clear_pct": round(float(filled.mean()) * 100, 1)}
     return out8, meta
 

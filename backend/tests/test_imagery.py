@@ -45,7 +45,9 @@ def test_median_composite_drops_a_stray_cloud_edge():
     out, filled = median_composite(layers)
     assert bool(filled.all()) and np.allclose(out[0, 0], 0.10) and np.allclose(out[0, 1], 0.10)   # the bright outlier does not survive
     none, f2 = median_composite([(clear, np.zeros((1, 2), bool))])
-    assert not f2.any()
+    assert not f2.any() and np.allclose(none, 0.10)                      # never clear: marked as such, but shows the least-bad view, not a hole
+    hole, f3 = median_composite([(clear, np.zeros((1, 2), bool))], fill_unclear=False)
+    assert not f3.any() and np.allclose(hole, 0)
 
 
 def test_a_dry_year_is_never_chosen_as_the_normal_year():
