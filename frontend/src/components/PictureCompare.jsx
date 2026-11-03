@@ -94,7 +94,7 @@ export default function PictureCompare({ plot }) {
         {mode === "years"
           ? "Same place and time of year. The left picture is an ordinary, not a dry, year, so what differs is the season, not the calendar."
           : "Both pictures are 2026. Fields also turn brown from ordinary ripening and harvest, so this alone can mislead. Prefer Compare years."}
-        {" "}White square: this plot. Each picture blends the clearest passes near its date ({fl?.clear_pct}% and {fr?.clear_pct}% clear; grey = never clear).
+        {" "}White square: this plot. Each picture blends the clearest passes near its date ({fl?.clear_pct}% and {fr?.clear_pct}% clear; the rest shows the least-bad view).
         Cloud, harvest or ploughing can also change colour: this shows a pattern, not a cause.
       </div>
     </div>
