@@ -1,98 +1,144 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import maplibregl from "maplibre-gl";
 import { api } from "@/api";
+import { go } from "@/lib/router";
+import { useT } from "@/lib/i18n";
 
 const STYLE = { version: 8, sources: {}, layers: [{ id: "bg", type: "background", paint: { "background-color": "#0f140c" } }] };
-const shareColor = (s) => (s == null ? "#8f988a" : s < 0.15 ? "#7bb241" : s < 0.35 ? "#e5a823" : "#d14a30");
 const pct = (x) => (x == null ? "—" : `${Math.round(x * 100)}%`);
+// How unusual a taluka is for the date: the share flagged now minus the usual share for the same date in other seasons.
+const excessColor = (e) => (e == null ? "#8f988a" : e < 0.1 ? "#7bb241" : e < 0.3 ? "#e5a823" : "#d14a30");
+const ring = (geom) => (geom.type === "Polygon" ? [geom.coordinates[0]] : geom.coordinates.map((p) => p[0]));
+const centroid = (geom) => {
+  const pts = ring(geom).flat();
+  return [pts.reduce((a, p) => a + p[0], 0) / pts.length, pts.reduce((a, p) => a + p[1], 0) / pts.length];
+};
 
-export default function District({ onOpen }) {
+export default function District() {
+  const { t } = useT();
   const [data, setData] = useState(null);
+  const [outlines, setOutlines] = useState(null);
+  const [reported, setReported] = useState([]);
   const [err, setErr] = useState("");
   const [hover, setHover] = useState(null);
+  const [showList, setShowList] = useState(false);
   const box = useRef(null);
 
-  useEffect(() => { api("/api/district").then(setData).catch((e) => setErr(e.message)); }, []);
+  useEffect(() => {
+    api("/api/district").then(setData).catch((e) => setErr(e.message));
+    api("/api/reported").then(setReported).catch(() => {});
+    fetch("/jalna_talukas.json").then((r) => r.json()).then(setOutlines).catch(() => {});
+  }, []);
+
+  const byParent = useMemo(() => Object.fromEntries((data?.talukas || []).map((x) => [x.parent_taluka || x.taluka, x])), [data]);
 
   useEffect(() => {
-    if (!data) return;
-    const ts = data.talukas;
-    const cx = ts.reduce((a, t) => a + t.centre[0], 0) / ts.length;
-    const cy = ts.reduce((a, t) => a + t.centre[1], 0) / ts.length;
-    const map = new maplibregl.Map({ container: box.current, style: STYLE, center: [cx, cy], zoom: 5.4, pitch: 0, attributionControl: false });
+    if (!data || !outlines) return;
+    const feats = outlines.features.map((f) => {
+      const row = byParent[f.properties.match];
+      return { ...f, properties: { ...f.properties, color: excessColor(row?.excess_over_usual), key: row?.taluka || "", parent: f.properties.match || "" } };
+    });
+    const fc = { type: "FeatureCollection", features: feats };
+    const all = feats.flatMap((f) => ring(f.geometry).flat());
+    const bounds = [[Math.min(...all.map((p) => p[0])), Math.min(...all.map((p) => p[1]))], [Math.max(...all.map((p) => p[0])), Math.max(...all.map((p) => p[1]))]];
+    const map = new maplibregl.Map({ container: box.current, style: STYLE, center: [(bounds[0][0] + bounds[1][0]) / 2, (bounds[0][1] + bounds[1][1]) / 2], zoom: 5.6, pitch: 0, attributionControl: false });
     const markers = [];
     map.on("load", () => {
-      map.addSource("t", { type: "geojson", data: { type: "FeatureCollection", features: ts.map((t) => ({
-        type: "Feature", properties: { name: t.taluka, color: shareColor(t.stress_share) }, geometry: { type: "Point", coordinates: t.centre } })) } });
-      map.addLayer({ id: "halo", type: "circle", source: "t", paint: { "circle-radius": 26, "circle-color": ["get", "color"], "circle-opacity": 0.18, "circle-blur": 0.6 } });
-      map.addLayer({ id: "dot", type: "circle", source: "t", paint: { "circle-radius": 11, "circle-color": ["get", "color"], "circle-stroke-width": 2, "circle-stroke-color": "#fff" } });
-      fetch("/maharashtra.json").then((r) => r.json()).then((mh) => {   // Maharashtra districts as context under the taluka dots
-        if (!map.getStyle()) return;
-        map.addSource("mh", { type: "geojson", data: mh.districts });
-        map.addLayer({ id: "mh-fill", type: "fill", source: "mh", paint: { "fill-color": ["case", ["==", ["get", "name"], "Jalna"], "#2b3a1f", "#161d11"], "fill-opacity": 0.95 } }, "halo");
-        map.addLayer({ id: "mh-line", type: "line", source: "mh", paint: { "line-color": "#3a4830", "line-width": 0.8 } }, "halo");
-      });
-      ts.forEach((t) => {
+      map.addSource("t", { type: "geojson", data: fc });
+      map.addLayer({ id: "fill", type: "fill", source: "t", paint: { "fill-color": ["get", "color"], "fill-opacity": 0.55 } });
+      map.addLayer({ id: "hover", type: "fill", source: "t", filter: ["==", ["get", "parent"], ""], paint: { "fill-color": "#ffffff", "fill-opacity": 0.2 } });
+      map.addLayer({ id: "line", type: "line", source: "t", paint: { "line-color": "#e9d8a6", "line-width": 1.4 } });
+      feats.forEach((f) => {
+        const row = byParent[f.properties.match];
         const el = document.createElement("div");
         el.className = "map-label";
-        el.textContent = `${t.rank}. ${t.taluka}`;
-        markers.push(new maplibregl.Marker({ element: el, offset: [0, -28] }).setLngLat(t.centre).addTo(map));
+        el.textContent = row ? `${row.rank}. ${f.properties.match}` : f.properties.name;
+        markers.push(new maplibregl.Marker({ element: el }).setLngLat(centroid(f.geometry)).addTo(map));
       });
-      map.on("click", "dot", (e) => onOpen(e.features[0].properties.name));
-      map.on("mouseenter", "dot", (e) => { map.getCanvas().style.cursor = "pointer"; setHover(e.features[0].properties.name); });
-      map.on("mouseleave", "dot", () => { map.getCanvas().style.cursor = ""; setHover(null); });
-      // opening swoop: from a wide view down onto the district, tilted
-      map.flyTo({ center: [cx, cy], zoom: 8.6, pitch: 35, bearing: -12, duration: 3200, curve: 1.6, essential: true });
+      map.on("mousemove", "fill", (e) => { const p = e.features[0].properties.parent; map.setFilter("hover", ["==", ["get", "parent"], p]); map.getCanvas().style.cursor = "pointer"; setHover(p); });
+      map.on("mouseleave", "fill", () => { map.setFilter("hover", ["==", ["get", "parent"], ""]); map.getCanvas().style.cursor = ""; setHover(null); });
+      map.on("click", "fill", (e) => { const k = e.features[0].properties.key; if (k) go(`/app/area/${k}`); });
+      map.fitBounds(bounds, { padding: { top: 60, bottom: 60, left: 40, right: 40 }, duration: 2800, pitch: 28, bearing: -8 });
     });
     return () => { markers.forEach((m) => m.remove()); map.remove(); };
-  }, [data]);
+  }, [data, outlines, byParent]);
 
-  if (err) return <div className="p-8" style={{ color: "#d14a30" }}>{err}</div>;
-  if (!data) return <div className="p-8" style={{ color: "var(--muted)" }}>Loading district…</div>;
+  function download() {
+    const head = ["rank", "taluka", "basis", "farmland_cells", "share_flagged", "usual_share_median", "usual_share_max", "excess_over_usual", "cannot_see_share", "as_of"];
+    const rows = data.talukas.map((x) => [x.rank, x.parent_taluka || x.taluka, x.kind === "whole_taluka" ? "whole taluka" : "4 km sample box", x.farmland_cells,
+      x.share_at_compare_date ?? x.stress_share, x.usual_share_median, x.usual_share_max, x.excess_over_usual, x.cannot_see_share, x.as_of]);
+    const csv = [head, ...rows].map((r) => r.map((v) => (v == null ? "" : v)).join(",")).join("\n");
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(new Blob([csv], { type: "text/csv" }));
+    a.download = "jalna_talukas_ranked.csv"; a.click();
+  }
 
-  return (
-    <div className="h-full flex">
-      <aside className="w-[380px] shrink-0 border-r overflow-auto scroll-thin p-4" style={{ borderColor: "var(--line)", background: "var(--panel)" }}>
-        <h2 className="text-xl font-bold">Jalna district: which taluka needs attention first</h2>
-        <p className="text-xs mt-1" style={{ color: "var(--muted)" }}>{data.note}</p>
-        <div className="mt-4 flex flex-col gap-3">
-          {data.talukas.map((t) => (
-            <button key={t.taluka} onClick={() => onOpen(t.taluka)} className="card p-3 text-left slide-in"
-              style={{ borderColor: hover === t.taluka ? "var(--accent)" : undefined }}>
-              <div className="flex items-center gap-2">
-                <b className="text-lg">{t.rank}</b><b>{t.taluka}</b>
-                {t.low_confidence && <span className="chip" style={{ color: "#e5a823" }}>Low confidence</span>}
-                {t.reported > 0 && <span className="chip" style={{ color: "#d14a30" }}>{t.reported} reported</span>}
+  if (err) return <div className="p-8" style={{ color: "var(--rust)" }}>{err}</div>;
+  if (!data) return <div className="p-8" style={{ color: "var(--muted)" }}>{t("loading")}</div>;
+
+  const covered = data.talukas.reduce((a, x) => a + (x.farmland_cells || 0), 0);
+  const unusual = data.talukas.filter((x) => x.exceeds_every_ordinary_season).length;
+  const list = (
+    <>
+      <h2 className="text-xl font-bold">Jalna district: which taluka needs attention first</h2>
+      <p className="text-xs mt-1" style={{ color: "var(--muted)" }}>{data.note}</p>
+      <div className="grid grid-cols-3 gap-2 mt-3 text-center">
+        {[[covered.toLocaleString(), "farmland cells"], [`${unusual} of ${data.talukas.length}`, "above any past season"], [reported.length, t("reported")]].map(([n, l]) => (
+          <div key={l} className="card py-2"><b className="text-lg">{n}</b><div className="text-[11px]" style={{ color: "var(--muted)" }}>{l}</div></div>
+        ))}
+      </div>
+      <div className="mt-3 flex gap-2">
+        <button className="btn text-sm flex-1" onClick={download}>Download ranking (CSV)</button>
+        <button className="btn text-sm flex-1" onClick={() => go("/app/reported")}>{t("reported")} ({reported.length})</button>
+      </div>
+      <div className="mt-4 flex flex-col gap-3">
+        {data.talukas.map((x) => {
+          const parent = x.parent_taluka || x.taluka;
+          return (
+            <button key={x.taluka} onClick={() => go(`/app/area/${x.taluka}`)} className="card p-3 text-left slide-in" style={{ borderColor: hover === parent ? "var(--leaf)" : undefined }}>
+              <div className="flex items-center gap-2 flex-wrap">
+                <b className="text-lg">{x.rank}</b><b>{parent}</b>
+                <span className="chip" style={{ color: "var(--muted)" }}>{x.kind === "whole_taluka" ? "whole taluka" : "4 km sample"}</span>
+                {x.low_confidence && <span className="chip" style={{ color: "var(--ochre)" }}>Low confidence</span>}
+                {x.reported > 0 && <span className="chip" style={{ color: "var(--rust)" }}>{x.reported} {t("reported").toLowerCase()}</span>}
               </div>
               <div className="mt-2 text-sm">
-                <b style={{ color: shareColor(t.stress_share) }}>{pct(t.share_at_compare_date ?? t.stress_share)}</b> of visible farmland is behind normal
-                <span style={{ color: "var(--muted)" }}> · Urgent {pct(t.urgent_share)}</span>
+                <b style={{ color: excessColor(x.excess_over_usual) }}>{pct(x.share_at_compare_date ?? x.stress_share)}</b> of visible farmland is {t("behindNormal")}
               </div>
-              {t.usual_share_median != null && (
-                <div className="mt-1 text-xs" style={{ color: t.exceeds_every_ordinary_season ? "var(--leaf)" : "var(--muted)" }}>
-                  Usual for this date: {pct(t.usual_share_median)} (highest in past seasons {pct(t.usual_share_max)}){t.exceeds_every_ordinary_season ? " · higher than any past season" : ""}
-                </div>
-              )}
-              <div className="mt-2 h-2 rounded-full overflow-hidden flex" style={{ background: "var(--panel-2)" }}>
-                <div style={{ width: `${(t.urgent_share || 0) * 100}%`, background: "#d14a30" }} />
-                <div style={{ width: `${((t.stress_share || 0) - (t.urgent_share || 0)) * 100}%`, background: "#e5a823" }} />
+              <div className="text-xs mt-1" style={{ color: x.exceeds_every_ordinary_season ? "var(--leaf)" : "var(--muted)" }}>
+                {t("usualForDate")}: {pct(x.usual_share_median)} (highest in past seasons {pct(x.usual_share_max)}){x.exceeds_every_ordinary_season ? ` · ${t("higherThanAny")}` : ""}
+              </div>
+              <div className="mt-2 h-2 rounded-full overflow-hidden" style={{ background: "var(--panel-2)" }}>
+                <div style={{ width: `${Math.min(100, (x.share_at_compare_date ?? x.stress_share ?? 0) * 100)}%`, height: "100%", background: excessColor(x.excess_over_usual) }} />
               </div>
               <div className="mt-2 text-xs" style={{ color: "var(--muted)" }}>
-                Could not see {pct(t.cannot_see_share)} of farmland · {t.visible_cells} cells read · as of {t.as_of}
+                {t("couldNotSee")} {pct(x.cannot_see_share)} · {(x.farmland_cells || 0).toLocaleString()} cells · {t("asOf")} {x.as_of}
               </div>
             </button>
-          ))}
-        </div>
-      </aside>
-      <div className="flex-1 relative">
+          );
+        })}
+      </div>
+    </>
+  );
+
+  return (
+    <div className="h-full flex relative">
+      <aside className="hidden lg:block w-[400px] shrink-0 border-r overflow-auto scroll-thin p-4" style={{ borderColor: "var(--line)", background: "var(--panel)" }}>{list}</aside>
+      <div className="flex-1 relative min-w-0">
         <div className="absolute inset-0"><div ref={box} style={{ width: "100%", height: "100%" }} /></div>
-        <div className="absolute left-4 bottom-4 card p-3 text-xs flex gap-3" style={{ color: "var(--muted)" }}>
-          {[["#7bb241", "under 15%"], ["#e5a823", "15–35%"], ["#d14a30", "over 35%"], ["#8f988a", "no data"]].map(([c, l]) => (
+        <button className="btn absolute left-3 top-3 lg:hidden" onClick={() => setShowList(true)}>☰ Ranking</button>
+        <div className="absolute left-3 bottom-3 card p-3 text-xs flex gap-3 flex-wrap" style={{ color: "var(--muted)", background: "rgba(24,31,20,.92)" }}>
+          {[["#7bb241", "usual"], ["#e5a823", "unusual"], ["#d14a30", "very unusual"], ["#8f988a", "no data"]].map(([c, l]) => (
             <span key={l} className="flex items-center gap-1"><i style={{ background: c, width: 10, height: 10, borderRadius: 99, display: "inline-block" }} />{l}</span>
           ))}
-          <span>share of visible farmland behind normal</span>
+          <span>colour: how much more is flagged than usual for this date</span>
         </div>
       </div>
+      {showList && (
+        <div className="absolute inset-0 z-20 lg:hidden flex" style={{ background: "rgba(0,0,0,.5)" }} onClick={() => setShowList(false)}>
+          <div className="w-[92%] max-w-[420px] h-full overflow-auto p-4 slide-in" style={{ background: "var(--panel)" }} onClick={(e) => e.stopPropagation()}>{list}</div>
+        </div>
+      )}
     </div>
   );
 }
