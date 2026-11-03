@@ -5,7 +5,8 @@ from pathlib import Path
 import numpy as np
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
-from analysis import (DEFAULT_TH, GRID, NBINS, aligned_normal, bin_of, doy, flagged_share, level_series, normal_from, sow_bins)
+from analysis import (DEFAULT_TH, NBINS, aligned_normal, bin_of, doy, flagged_share, level_series, normal_from, sow_bins)
+from config import GRID
 
 
 def season(values, fill=np.nan):
@@ -81,3 +82,22 @@ def test_alignment_still_flags_a_real_shortfall():
     ali, _ = aligned_normal(by, [2024, 2025], sow[2026], sow)
     dev = weak - ali
     assert float(np.nanmin(dev[:, 0, 0])) < -0.25                   # alignment must not hide genuine stress
+
+
+def test_binned_by_year_handles_any_grid_size():
+    from analysis import binned_by_year
+    ndvi = np.full((2, 7, 11), 0.5, dtype=np.float32)               # a 7 x 11 area, not the 20 x 20 box
+    by = binned_by_year(["2026-07-01", "2026-07-03"], ndvi)
+    assert by[2026].shape == (NBINS, 7, 11) and np.isclose(np.nanmax(by[2026]), 0.5)
+
+
+def test_whole_taluka_grid_tiles_exactly_and_sits_inside_the_taluka():
+    from config import area_spec, sample_spec
+    a = area_spec("PartWhole")
+    w, s, e, n = a["bbox"]
+    assert a["rows"] > 100 and a["cols"] > 60 and a["cell_px"] == 5
+    assert abs((e - w) / a["cols"] - a["cell_m"] / (111320.0 * np.cos(np.radians((s + n) / 2)))) < 1e-6   # cell width in degrees matches 300 m
+    assert abs((n - s) / a["rows"] - a["cell_m"] / 111320.0) < 1e-9
+    assert a["polygon"].bounds[0] >= w - 1e-9 and a["polygon"].bounds[3] <= n + 1e-9                       # the taluka fits inside the grid
+    b = sample_spec("Partur")
+    assert (b["rows"], b["cols"], b["cell_px"]) == (20, 20, 10)                                           # the registered sample boxes are untouched
