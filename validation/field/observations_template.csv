@@ -1,1 +1,1 @@
-cell_id,visit_date,interviewer,crop,crop_share_pct,sowing_date,first_stress_date,severity_0to3,main_cause,yield_pct_of_normal,irrigated,photo_file,gps_accuracy_m,consent_given,notes
+cell_id,visit_status,skip_reason,visit_date,interviewer,crop,crop_share_pct,sowing_date,first_stress_date,severity_0to3,main_cause,yield_pct_of_normal,irrigated,photo_file,gps_accuracy_m,consent_given,notes

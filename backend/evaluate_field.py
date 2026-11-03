@@ -64,7 +64,7 @@ def to_date(s):
         return None
 
 
-def evaluate(key_path=FIELD / "sample_field_KEY_SEALED.csv", obs_path=FIELD / "observations.csv", meta_path=FIELD / "sample_field_meta.json"):
+def evaluate(key_path=FIELD / "sample_field_KEY_SEALED.csv", obs_path=FIELD / "observations.csv", meta_path=FIELD / "sample_field_meta.json", blind_path=None):
     key = {r["cell_id"]: r for r in read_csv(key_path)}
     notes = []
     if meta_path and Path(meta_path).exists():
@@ -73,16 +73,30 @@ def evaluate(key_path=FIELD / "sample_field_KEY_SEALED.csv", obs_path=FIELD / "o
         if want != got:
             raise SystemExit("The key file does not match the hash recorded before the visits. Do not use these results.")
         notes.append("Key file matches the hash recorded before the visits.")
+    obs = read_csv(obs_path)
+    replaces = {}
+    if blind_path and Path(blind_path).exists():                         # which main plot each spare stands in for
+        replaces = {r["cell_id"]: r["replaces"] for r in read_csv(blind_path) if r.get("replaces")}
+    by_id = {o["cell_id"]: o for o in obs}
+    yes = ("yes", "y", "true", "1")
+
+    def unusable(o):
+        return (o.get("visit_status", "visited").strip().lower() == "not_visited") or o.get("consent_given", "").strip().lower() not in yes
+
     used, skipped = [], []
-    for o in read_csv(obs_path):
+    for o in obs:
         k = key.get(o["cell_id"])
         sev = o.get("severity_0to3", "").strip()
         if k is None:
             skipped.append((o["cell_id"], "not in the sample"))
-        elif o.get("consent_given", "").strip().lower() not in ("yes", "y", "true", "1"):
+        elif o.get("visit_status", "visited").strip().lower() == "not_visited":
+            skipped.append((o["cell_id"], "not visited: " + (o.get("skip_reason", "").strip() or "no reason given")))
+        elif o.get("consent_given", "").strip().lower() not in yes:
             skipped.append((o["cell_id"], "no consent recorded"))
         elif sev not in ("0", "1", "2", "3"):
             skipped.append((o["cell_id"], "severity missing"))
+        elif k["role"] == "reserve" and replaces and not (replaces.get(o["cell_id"]) in by_id and unusable(by_id[replaces[o["cell_id"]]])):
+            skipped.append((o["cell_id"], "spare used although its main plot was not marked unusable"))
         else:
             used.append((o, k))
 
@@ -145,7 +159,7 @@ def write_md(r, path):
 def main():
     if not (FIELD / "observations.csv").exists():
         raise SystemExit("No observations yet: validation/field/observations.csv does not exist. Nothing to evaluate.")
-    r = evaluate()
+    r = evaluate(blind_path=FIELD / "sample_field.csv")
     (FIELD / "field_result.json").write_text(json.dumps(r, indent=1))
     write_md(r, FIELD.parent / "FIELD_RESULT.md")
     print(json.dumps({k: r[k] for k in ("n_visits_used", "main")}, indent=1))
