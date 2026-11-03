@@ -10,8 +10,8 @@ from pathlib import Path
 
 import numpy as np
 
-from analysis import (DEFAULT_TH, NBINS, SEASON_START_DOY, STALE_BINS, bin_of, binned_by_year, crop_mask, doy, flagged_share,
-                      level_series, load_raw, normal_from, rain_total)
+from analysis import (DEFAULT_TH, NBINS, aligned_normal, bin_of, binned_by_year, crop_mask, doy, flagged_share, level_series,
+                      load_raw, normal_from, rain_total, sow_bins)
 from config import DISTRICT, GRID, TALUKAS
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -21,12 +21,13 @@ NAMES = {0: "normal", 1: "watch", 2: "urgent", 3: "cannot_see"}
 
 
 def thresholds():
+    """(thresholds, description, crop-age aligned?) from the last tuned backtest, else the untuned defaults."""
     p = ROOT / "validation" / "backtest.json"
     if p.exists():
-        t = json.loads(p.read_text()).get("thresholds_tuned")
-        if t:
-            return t, "tuned on seasons other than 2026"
-    return dict(DEFAULT_TH), "default (not tuned)"
+        d = json.loads(p.read_text())
+        if d.get("thresholds_tuned"):
+            return d["thresholds_tuned"], "tuned on seasons other than 2026", bool(d.get("aligned"))
+    return dict(DEFAULT_TH), "default (not tuned)", False
 
 
 def reason(level, last, valid, dev, th):
@@ -47,11 +48,15 @@ def cell_polygon(bbox, r, c):
     return [[x0, y1], [x0 + dx, y1], [x0 + dx, y1 - dy], [x0, y1 - dy], [x0, y1]]
 
 
-def build_taluka(name, th):
+def build_taluka(name, th, align):
     dates, ndvi, bbox = load_raw(name)
     by = binned_by_year(dates, ndvi)
     base_years = [y for y in sorted(by) if y < TEST_YEAR]
-    normal, n_base = normal_from(by, base_years)
+    if align:
+        sow = sow_bins(by)
+        normal, n_base = aligned_normal(by, base_years, sow[TEST_YEAR], sow)       # past seasons slid to the same crop age
+    else:
+        normal, n_base = normal_from(by, base_years)
     cur = by[TEST_YEAR]
     dev = cur - normal
     last_date = max(d for d in dates if d.startswith(str(TEST_YEAR)))
@@ -105,12 +110,12 @@ def build_taluka(name, th):
 
 def main():
     OUT.mkdir(parents=True, exist_ok=True)
-    th, how = thresholds()
-    print("thresholds:", th, "-", how)
+    th, how, align = thresholds()
+    print("thresholds:", th, "-", how, "| crop-age aligned:", align)
     sums = []
     for name in TALUKAS:
         try:
-            s = build_taluka(name, th)
+            s = build_taluka(name, th, align)
         except FileNotFoundError:
             print(name, "no data (skipped)")
             continue
@@ -122,7 +127,7 @@ def main():
         csh = s["cannot_see_share"]
         s["low_confidence"] = csh is None or csh > 0.5 or s["visible_cells"] < 30
     (OUT / "district.json").write_text(json.dumps({
-        "district": DISTRICT, "talukas": ranked, "method": "v2", "thresholds": th, "thresholds_how": how,
+        "district": DISTRICT, "talukas": ranked, "method": "v2", "thresholds": th, "thresholds_how": how, "crop_age_aligned": align,
         "note": "Each taluka is represented by one 4 km sample box. Farmland is from ESA WorldCover. Percentages are not accuracy figures."}, indent=1))
 
 
