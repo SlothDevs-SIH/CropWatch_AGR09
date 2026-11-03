@@ -1,4 +1,4 @@
-# Crop Watch: Progress Report (updated 4 November 2026, rubric added and Mantha corrected)
+# Crop Watch: Progress Report (updated 4 November 2026, frontend built, whole-taluka coverage in progress)
 
 **How to read the percentages.** They are my estimates, not measurements. A percentage means: how much of what we planned for a demo we could defend in front of a jury is built and tested.
 
@@ -6,13 +6,13 @@
 
 | Area | Done | Change |
 |---|---|---|
-| Backend | **about 80%** | Was 72%. Production hardening, tests on the analysis, any-size areas, **whole Partur taluka covered** |
+| Backend | **about 82%** | Was 72%. Production hardening, tests on the analysis, any-size areas, whole Partur covered, on-demand loading, per-plot series, areas list |
 | Data | **about 49%** | Was 55% before recalibration, 42% after it, now up with whole-Partur. The old figure counted having some of each ingredient, not how much of the district we cover (see below) |
-| Frontend | about 55% | Unchanged. Farmer view, evidence-pack screen, Marathi, offline not built |
+| Frontend | **about 75%** | Was 55%. All role screens, season replay, Marathi, offline shell and queue built and checked in a browser; **not yet tested on a real phone or with the network off** |
 | Validation | about 56% | Was 52%. Backtest corrected for Mantha; **whole-taluka check done**; still no ground observations |
-| **Whole project** | **about 62%** | Was 60%. Data was recalibrated down, then real work moved it up |
+| **Whole project** | **about 67%** | Was 60%. Frontend built; data coverage still running |
 
-Commits: 129 on `main`. Tests: 29 passing.
+Commits: 129 on `main`. Tests: 30 passing.
 
 ## Why backend is about 77% and data about 42%, not higher
 
@@ -45,6 +45,23 @@ The biggest single reason backend is not higher is still **scale**: 15% of the w
 | **Field observations** | 15% | **0%** | The kit is ready; no plot has been visited |
 
 **Why I lowered data from 55% when I recalibrated it.** The earlier figure gave credit for having some of each ingredient. Counting how much of the district we actually cover and the zero field observations, it was too generous. Three rows hold the data score down: spatial coverage (25% of the weight, 34% done), field observations (15% of the weight, 0%) and radar (0%).
+
+### Frontend
+
+| Piece | Weight | Done | What is still missing |
+|---|---|---|---|
+| Landing page | 15% | 88% | Real screenshots instead of illustrations; a test on a slow laptop and a projector |
+| Sign-in and session | 5% | 80% | Sign-up and password reset (admins create accounts for now) |
+| District page (real taluka outlines, ranking, CSV, reported list) | 15% | 85% | Filters; mobile polish |
+| Area map (3D cells, list, filters, season replay, deep links) | 20% | 85% | Before-and-after picture swipe; the replay uses the same rule as the backend but is a copy of it |
+| Plot panel and verification (chart, rain, photo, history, report, evidence pack) | 15% | 85% | Tested with demo data only |
+| Farmer screen (phone-first, photo, Marathi) | 10% | 75% | Not tested on a real phone |
+| Service-centre screen (evidence pack, demo orders) | 5% | 80% | The legal check on the idea |
+| Admin screen (counts, create users, audit log) | 5% | 75% | Disable or reset users |
+| Accuracy and About pages | 5% | 85% | Field numbers (none exist yet) |
+| Marathi, offline and phone layout | 5% | 60% | A native speaker has not checked the Marathi; the offline shell is untested with the network off; photos need a connection |
+
+There are **no automated tests for the website**; the checks so far were done by hand in a browser.
 
 ## What the numbers now say (see `validation/BACKTEST.md`; Mantha corrected on 4 November)
 - **Separates 2026 from ordinary seasons in 5 of 8 sample areas.** Across all areas: 30% of visible farmland flagged in 2026, 8% in ordinary seasons (46 taluka-seasons).
