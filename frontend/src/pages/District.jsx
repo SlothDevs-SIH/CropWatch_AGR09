@@ -98,7 +98,7 @@ export default function District() {
             <button key={x.taluka} onClick={() => go(`/app/area/${x.taluka}`)} className="card p-3 text-left slide-in" style={{ borderColor: hover === parent ? "var(--leaf)" : undefined }}>
               <div className="flex items-center gap-2 flex-wrap">
                 <b className="text-lg">{x.rank}</b><b>{parent}</b>
-                <span className="chip" style={{ color: "var(--muted)" }}>{x.kind === "whole_taluka" ? "whole taluka" : "4 km sample"}</span>
+                <span className="chip" style={{ color: "var(--muted)" }}>{x.kind === "whole_taluka" ? "whole taluka" : "4 km sample, ranked like for like"}</span>
                 {x.low_confidence && <span className="chip" style={{ color: "var(--ochre)" }}>Low confidence</span>}
                 {x.reported > 0 && <span className="chip" style={{ color: "var(--rust)" }}>{x.reported} {t("reported").toLowerCase()}</span>}
               </div>
@@ -108,6 +108,15 @@ export default function District() {
               <div className="text-xs mt-1" style={{ color: x.exceeds_every_ordinary_season ? "var(--leaf)" : "var(--muted)" }}>
                 {t("usualForDate")}: {pct(x.usual_share_median)} (highest in past seasons {pct(x.usual_share_max)}){x.exceeds_every_ordinary_season ? ` · ${t("higherThanAny")}` : ""}
               </div>
+              {x.whole_taluka && (
+                <div className="mt-2 text-xs card p-2" style={{ background: "var(--panel-2)" }}>
+                  <b>Whole taluka ({x.whole_taluka.farmland_cells.toLocaleString()} cells):</b> {pct(x.whole_taluka.share_at_compare_date ?? x.whole_taluka.stress_share)} flagged,
+                  {" "}the 4 km box said {pct(x.share_at_compare_date ?? x.stress_share)}.{" "}
+                  <span role="link" tabIndex={0} className="underline" style={{ color: "var(--leaf)" }}
+                    onClick={(e) => { e.stopPropagation(); go(`/app/area/${x.whole_taluka.taluka}`); }}
+                    onKeyDown={(e) => { if (e.key === "Enter") { e.stopPropagation(); go(`/app/area/${x.whole_taluka.taluka}`); } }}>Open the whole taluka</span>
+                </div>
+              )}
               <div className="mt-2 h-2 rounded-full overflow-hidden" style={{ background: "var(--panel-2)" }}>
                 <div style={{ width: `${Math.min(100, (x.share_at_compare_date ?? x.stress_share ?? 0) * 100)}%`, height: "100%", background: excessColor(x.excess_over_usual) }} />
               </div>
