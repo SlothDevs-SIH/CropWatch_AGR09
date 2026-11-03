@@ -96,7 +96,35 @@ def dry_years(name, years):
     return {y for y, v in tot.items() if v <= DRY_FRACTION * med}
 
 
+def area_main(name):
+    """Run the leave-one-year-out check on a whole-taluka area with the settings already chosen (never retuned here),
+    and compare it with the taluka's 4 km sample box. Writes validation/backtest_area_<name>.json."""
+    from analysis import inside_mask
+    from config import area_spec
+    saved = json.loads((OUT / "backtest.json").read_text())
+    th, align = saved["thresholds"], bool(saved.get("aligned"))
+    spec = area_spec(name)
+    dates, ndvi, _ = load_raw(name)
+    by = binned_by_year(dates, ndvi)
+    mask = crop_mask(name) & inside_mask(spec, *ndvi.shape[1:])
+    res = shares_for(by, mask, th, align)
+    box_dates, box_ndvi, _ = load_raw(spec["taluka"])
+    box = shares_for(binned_by_year(box_dates, box_ndvi), crop_mask(spec["taluka"]), th, align)
+    det = detection_bin(res) if TEST_YEAR in res else None
+    det_box = detection_bin(box) if TEST_YEAR in box else None
+    pick = lambda r: {str(y): (None if r[y][13][0] is None else round(r[y][13][0], 3)) for y in sorted(r)}
+    out = {"area": name, "taluka": spec["taluka"], "thresholds": th, "aligned": align, "seasons": sorted(by),
+           "share_at_order_date": {"whole_taluka": pick(res), "sample_box": pick(box)},
+           "detection_days_before_order": {"whole_taluka": None if det is None else ORDER_DOY - (SEASON_START_DOY + 10 * det),
+                                           "sample_box": None if det_box is None else ORDER_DOY - (SEASON_START_DOY + 10 * det_box)},
+           "cells": int(mask.sum())}
+    (OUT / f"backtest_area_{name}.json").write_text(json.dumps(out, indent=1))
+    print(json.dumps(out, indent=1))
+
+
 def main():
+    if "--area" in sys.argv:
+        return area_main(sys.argv[sys.argv.index("--area") + 1])
     tune = "--tune" in sys.argv
     data = {}
     for name in TALUKAS:
