@@ -6,7 +6,7 @@ DISTRICT = {"id": "JALNA", "name": "Jalna", "state": "Maharashtra"}
 # One 4 km sample box near each taluka town (approximate centres, to be replaced by real taluka outlines).
 TALUKAS = {
     "Partur":      {"lat": 19.60, "lon": 76.21},
-    "Jalna":       {"lat": 19.84, "lon": 75.88},
+    "Jalna":       {"lat": 19.732, "lon": 75.985},   # moved from the town centre (18% cropland) to rural land (97%)
     "Badnapur":    {"lat": 19.87, "lon": 75.73},
     "Ambad":       {"lat": 19.61, "lon": 75.80},
     "Ghansawangi": {"lat": 19.42, "lon": 75.99},
