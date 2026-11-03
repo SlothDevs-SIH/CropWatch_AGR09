@@ -12,6 +12,7 @@ import numpy as np
 
 from analysis import (DEFAULT_TH, NBINS, aligned_normal, bin_of, binned_by_year, crop_mask, doy, flagged_share, level_series,
                       load_raw, normal_from, rain_total, sow_bins)
+from backtest import shares_for
 from config import DISTRICT, GRID, TALUKAS
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -95,10 +96,20 @@ def build_taluka(name, th, align):
     upto = doy(last_date)
     rain_now = rain_total(name, TEST_YEAR, upto)
     past = [r for r in (rain_total(name, y, upto) for y in range(2018, TEST_YEAR)) if r is not None]
+    usual = shares_for(by, mask & has_base, th, align)                 # every season against all the others, same date
+    b_cmp = min(last_bin, max(usual[TEST_YEAR]))                        # compare all seasons at the same date
+    share_cmp = usual[TEST_YEAR][b_cmp][0]
+    ord_shares = [usual[y][b_cmp][0] for y in usual if y != TEST_YEAR and usual[y][b_cmp][0] is not None]
+    usual_med = round(float(np.median(ord_shares)), 3) if ord_shares else None
+    usual_max = round(max(ord_shares), 3) if ord_shares else None
     summary = {"taluka": name, "as_of": last_date, "farmland_cells": farm_n, "visible_cells": seen, **counts,
                "stress_share": None if share is None else round(share, 3),
                "urgent_share": round(counts["urgent"] / seen, 3) if seen else None,
                "cannot_see_share": None if cs is None else round(cs, 3),
+               "usual_share_median": usual_med, "usual_share_max": usual_max,
+               "share_at_compare_date": None if share_cmp is None else round(share_cmp, 3),
+               "excess_over_usual": None if share_cmp is None or usual_med is None else round(share_cmp - usual_med, 3),
+               "exceeds_every_ordinary_season": bool(share_cmp is not None and usual_max is not None and share_cmp > usual_max),
                "baseline_years": base_years, "scenes_used": len(dates), "bbox": bbox,
                "centre": [(bbox[0] + bbox[2]) / 2, (bbox[1] + bbox[3]) / 2],
                "rain_mm": rain_now, "rain_mean_prev_mm": round(sum(past) / len(past), 1) if past else None,
@@ -121,13 +132,14 @@ def main():
             continue
         sums.append(s)
         print(name, {k: s[k] for k in ("farmland_cells", "visible_cells", "stress_share", "urgent_share", "cannot_see_share", "rain_pct_of_mean")})
-    ranked = sorted(sums, key=lambda s: -(s["stress_share"] or 0))
+    ranked = sorted(sums, key=lambda s: -(s["excess_over_usual"] if s["excess_over_usual"] is not None else (s["stress_share"] or 0)))   # most unusual for the date first
     for i, s in enumerate(ranked, 1):
         s["rank"] = i
         csh = s["cannot_see_share"]
         s["low_confidence"] = csh is None or csh > 0.5 or s["visible_cells"] < 30
     (OUT / "district.json").write_text(json.dumps({
         "district": DISTRICT, "talukas": ranked, "method": "v2", "thresholds": th, "thresholds_how": how, "crop_age_aligned": align,
+        "ranked_by": "excess over the usual share of flagged farmland for this date (median of other seasons)",
         "note": "Each taluka is represented by one 4 km sample box. Farmland is from ESA WorldCover. Percentages are not accuracy figures."}, indent=1))
 
 
