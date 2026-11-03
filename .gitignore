@@ -19,3 +19,4 @@ validation/field/observations.csv
 validation/field/photos/
 validation/field/sheets/
 backend/fetch_*.txt
+data/imagery/
