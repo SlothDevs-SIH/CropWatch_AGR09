@@ -194,3 +194,17 @@ def test_production_mode_in_its_own_process(tmp_path):
     assert json.loads(ok.stdout.strip().splitlines()[-1]) == [[], 401, 200]            # no demo accounts, demo login refused, real admin works
     no_secret = subprocess.run([sys.executable, "-c", code.replace("\\n", "\n")], cwd=here, capture_output=True, text=True, env={**base, "CW_SECRET": ""})
     assert no_secret.returncode != 0 and "CW_SECRET" in no_secret.stderr                # refuses to start without a real secret
+
+
+def test_whole_taluka_area_follows_its_parent_taluka(client):
+    t_partur, t_jalna = auth(client, "taluka.partur@jalna.demo"), auth(client, "taluka.jalna@jalna.demo")
+    r = client.get("/api/talukas/PartWhole", headers=t_partur)
+    assert r.status_code == 200 and len(r.json()["features"]) > 5000
+    assert r.json()["properties"]["parent_taluka"] == "Partur" and r.json()["properties"]["kind"] == "whole_taluka"
+    assert client.get("/api/talukas/PartWhole", headers=t_jalna).status_code == 403                    # another taluka's officer
+    assert client.get("/api/talukas/PartWhole", headers=auth(client, "district@jalna.demo")).status_code == 200
+    assert client.get("/api/talukas/PartWhole", headers=auth(client, "farmer1@partur.demo")).status_code == 403   # not the farmer's plots
+    ids = [f["properties"]["id"] for f in r.json()["features"]]
+    assert len(ids) == len(set(ids)) and all(i.startswith("PTW-") for i in ids)                         # no clash with the registered PAR- sample ids
+    d = client.get("/api/district", headers=auth(client, "district@jalna.demo")).json()
+    assert "PartWhole" not in [t["taluka"] for t in d["talukas"]] and "Partur" in d["whole_taluka_areas"]   # kept out of the ranking
