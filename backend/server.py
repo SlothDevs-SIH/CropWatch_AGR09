@@ -16,7 +16,7 @@ import uuid
 from pathlib import Path
 
 from fastapi import Depends, FastAPI, File, Header, HTTPException, Request, UploadFile
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
@@ -107,6 +107,7 @@ def init_db():
     CREATE TABLE IF NOT EXISTS checks(id INTEGER PRIMARY KEY, plot_id TEXT, kind TEXT, status TEXT, note TEXT, by_name TEXT, at TEXT);
     CREATE TABLE IF NOT EXISTS reports(plot_id TEXT PRIMARY KEY, taluka TEXT, note TEXT, by_name TEXT, at TEXT);
     CREATE TABLE IF NOT EXISTS photos(id INTEGER PRIMARY KEY, plot_id TEXT, path TEXT, by_name TEXT, at TEXT);
+    CREATE TABLE IF NOT EXISTS orders(id INTEGER PRIMARY KEY, at TEXT, plot_id TEXT, centre TEXT, fee INTEGER, centre_share INTEGER, simulated INTEGER);
     CREATE TABLE IF NOT EXISTS audit(id INTEGER PRIMARY KEY, at TEXT, who TEXT, role TEXT, action TEXT, detail TEXT);
     """)
     def add(u, role, taluka=None):
@@ -116,6 +117,7 @@ def init_db():
     if "photo_id" not in [r["name"] for r in c.execute("PRAGMA table_info(checks)")]:
         c.execute("ALTER TABLE checks ADD COLUMN photo_id INTEGER")      # a check may carry one photo
     add(seed.ADMIN, "admin")
+    add(seed.CENTRE, "centre_operator", "Partur")
     add(seed.DISTRICT_OFFICER, "district_officer")
     for t in seed.TALUKA_NAMES:
         add(seed.taluka_account(t), "taluka_officer", t)
@@ -199,7 +201,8 @@ def demo_accounts():
     if os.environ.get("CW_DEMO", "1") == "0":
         return []
     rows = [(seed.DISTRICT_OFFICER, "District officer"), (seed.taluka_account("Partur"), "Taluka officer, Partur"),
-            (seed.FARMERS[0], "Farmer (Partur)"), (seed.FARMERS[2], "Farmer 3 (healthy plots)")]
+            (seed.FARMERS[0], "Farmer (Partur)"), (seed.FARMERS[2], "Farmer 3 (healthy plots)"),
+            (seed.CENTRE, "Service centre operator (evidence pack)")]
     return [{"label": l, "email": u["email"], "password": seed.DEMO_PASSWORD} for u, l in rows]
 
 
@@ -394,6 +397,109 @@ def reported(u=Depends(current_user)):
     _, reports = all_state()
     rows = [r for r in reports.values() if u["role"] != "taluka_officer" or r["taluka"] == u["taluka"]]
     return rows
+
+
+
+# ---------- evidence pack (a report that supports a claim; it does not file one) ----------
+DEMO_FEE, CENTRE_SHARE = 100, 20      # simulated rupees, set only for the demo. Real pricing comes from testing, not from this file.
+
+
+def can_evidence(u, pid: str) -> bool:
+    p = PLOTS[pid]["properties"]
+    if u["role"] == "centre_operator":
+        return u["taluka"] == p["taluka"]          # looks a plot up by its id for a farmer who is present; cannot browse the map
+    return can_see_plot(u, pid)
+
+
+def chart_svg(series, normal, w=520, h=220):
+    L, R, T, B = 36, 10, 10, 26
+    xs = lambda i: L + i * (w - L - R) / (len(series) - 1)
+    ys = lambda v: T + (1 - min(max(v, 0), 0.9) / 0.9) * (h - T - B)
+
+    def path(arr):
+        d, pen = "", False
+        for i, v in enumerate(arr):
+            if v is None:
+                pen = False
+                continue
+            d += f"{'L' if pen else 'M'}{xs(i):.1f},{ys(v):.1f}"
+            pen = True
+        return d
+    grid = "".join(f'<line x1="{L}" x2="{w - R}" y1="{ys(v):.1f}" y2="{ys(v):.1f}" stroke="#ddd"/><text x="{L - 6}" y="{ys(v) + 4:.1f}" font-size="10" text-anchor="end" fill="#666">{v:.1f}</text>' for v in (0, 0.3, 0.6, 0.9))
+    return (f'<svg viewBox="0 0 {w} {h}" width="100%">{grid}<path d="{path(normal)}" fill="none" stroke="#777" stroke-width="2" stroke-dasharray="5 4"/>'
+            f'<path d="{path(series)}" fill="none" stroke="#b8341f" stroke-width="2.6"/></svg>')
+
+
+@app.get("/api/plots/{pid}/evidence", response_class=HTMLResponse)
+def evidence(pid: str, u=Depends(current_user)):
+    if pid not in PLOTS or not can_evidence(u, pid):
+        raise HTTPException(404, "No such plot")
+    p = PLOTS[pid]["properties"]
+    g = TALUKA_GEO[p["taluka"]]["properties"]
+    checks, reports = all_state()
+    ch = checks.get(pid, [])
+    status = status_for(p["level"], ch, pid in reports)
+    from analysis import doy, rain_total
+    upto = doy(g["as_of"])
+    rain_now = rain_total(p["taluka"], 2026, upto)
+    past = [r for r in (rain_total(p["taluka"], y, upto) for y in range(2018, 2026)) if r is not None]
+    rain_line = (f"Rain from 1 June to {g['as_of']}: {rain_now} mm this season, against an average of {sum(past) / len(past):.0f} mm in 2018 to 2025 "
+                 f"(coarse gridded estimate, about 50 km, not a gauge reading).") if rain_now is not None and past else "Rainfall data not available."
+    rows = "".join(f"<tr><td>{c['at']}</td><td>{'Farmer' if c['kind'] == 'farmer' else 'Field visit'}</td><td>{c['status'].replace('_', ' ')}</td><td>{c['note'] or ''}</td></tr>" for c in ch) or '<tr><td colspan="4">No farmer or field checks recorded yet.</td></tr>'
+    chart = chart_svg(p["series_2026"], p["series_normal"]) if p.get("series_2026") else ""
+    html = f"""<!doctype html><html lang="en"><meta charset="utf-8"><title>Crop Watch evidence pack {pid}</title>
+<style>body{{font-family:Segoe UI,Arial,sans-serif;max-width:760px;margin:2rem auto;padding:0 1rem;color:#1e2620}}h1{{font-size:1.5rem}}table{{border-collapse:collapse;width:100%}}td,th{{border:1px solid #ccc;padding:6px 8px;font-size:.9rem;text-align:left}}.box{{border:1px solid #b9b19c;background:#f6f1e4;padding:10px 14px;border-radius:8px;margin:1rem 0;font-size:.92rem}}small{{color:#555}}</style>
+<h1>Crop Watch evidence pack</h1>
+<p><b>Plot-sized cell {pid}</b>, {p['taluka']} taluka, Jalna district. Satellite readings to {g['as_of']}.</p>
+<div class="box"><b>Satellite finding:</b> {p['level'].replace('_', ' ')} ({p.get('confidence', 'n/a')} confidence). {p.get('reason', '')}<br><b>Verification status:</b> {status.replace('_', ' ') if status != 'none' else 'not flagged'}.</div>
+<h3>Greenness this season against the 2018 to 2025 average for the same time of year</h3>
+{chart}<small>Red: this season. Dashed grey: the average of past seasons. Gaps are weeks with no clear satellite picture.</small>
+<h3>Rainfall</h3><p>{rain_line}</p>
+<h3>Checks recorded</h3><table><tr><th>When</th><th>By</th><th>Result</th><th>Note</th></tr>{rows}</table>
+<div class="box"><b>Please read.</b> This report compares satellite pictures with earlier seasons. It does not say why a crop is behind, does not estimate yield, does not file a claim and does not promise any payout. A plot-sized cell is a 200 m by 200 m square, not a legal survey plot. Contains modified Copernicus Sentinel data; rainfall from NASA POWER; farmland mask from ESA WorldCover.</div>
+<small>Generated {time.strftime('%Y-%m-%d %H:%M')} by Crop Watch (pilot).</small></html>"""
+    audit(u["email"], u["role"], "evidence", pid)
+    return HTMLResponse(html)
+
+
+class Order(BaseModel):
+    plot_id: str
+
+
+@app.post("/api/orders")
+def create_order(b: Order, u=Depends(current_user)):
+    """Simulated purchase of an evidence pack. No money moves. Recorded so the flow and the revenue split can be shown."""
+    if u["role"] != "centre_operator":
+        raise HTTPException(403, "Only service centre operators place orders")
+    if b.plot_id not in PLOTS or not can_evidence(u, b.plot_id):
+        raise HTTPException(404, "No such plot")
+    c = db()
+    cur = c.execute("INSERT INTO orders(at,plot_id,centre,fee,centre_share,simulated) VALUES(datetime('now'),?,?,?,?,1)",
+                    (b.plot_id, u["email"], DEMO_FEE, CENTRE_SHARE))
+    c.commit(); oid = cur.lastrowid; c.close()
+    audit(u["email"], u["role"], "order", f"{b.plot_id} simulated")
+    return {"order_id": oid, "simulated": True, "fee": DEMO_FEE, "centre_share": CENTRE_SHARE, "evidence_url": f"/api/plots/{b.plot_id}/evidence"}
+
+
+@app.get("/api/orders")
+def list_orders(u=Depends(current_user)):
+    if u["role"] not in ("centre_operator", "admin"):
+        raise HTTPException(403, "Not allowed")
+    c = db()
+    rows = [dict(r) for r in c.execute("SELECT * FROM orders" + (" WHERE centre=?" if u["role"] == "centre_operator" else "") + " ORDER BY id DESC",
+                                       (u["email"],) if u["role"] == "centre_operator" else ())]
+    c.close()
+    return rows
+
+
+@app.get("/api/admin/stats")
+def admin_stats(u=Depends(current_user)):
+    if u["role"] != "admin":
+        raise HTTPException(403, "Admins only")
+    c = db()
+    out = {t: c.execute(f"SELECT COUNT(*) FROM {t}").fetchone()[0] for t in ("users", "checks", "reports", "photos", "orders", "audit")}
+    c.close()
+    return out
 
 
 # ---------- website ----------
