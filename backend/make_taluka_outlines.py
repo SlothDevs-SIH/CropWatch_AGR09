@@ -44,7 +44,7 @@ def main():
             continue
         n, g = owner
         cov[tname] = {"outline_name": n, "taluka_area_km2": round(km2(g)), "box_km2": round(km2(b), 1), "box_share_of_taluka_pct": round(100 * km2(b) / km2(g), 2),
-                      "box_fully_inside": bool(g.contains(b)), "box_inside_its_own_taluka": plain(n.split("(")[0]).replace("ff", "f") == plain(tname)}   # the file spells Jafrabad as Jafferabad
+                      "box_fully_inside": bool(g.contains(b)), "box_inside_its_own_taluka": {"jafferabad": "jafrabad"}.get(plain(n.split("(")[0]), plain(n.split("(")[0])) == plain(tname)}   # the file spells Jafrabad as Jafferabad
         print(tname, cov[tname])
     (ROOT / "frontend" / "public" / "jalna_talukas.json").write_text(json.dumps({"type": "FeatureCollection", "features": out, "credit": "geoBoundaries ADM3 (LGD via Pathways Data, ODbL)"}, separators=(",", ":")))
     tot_area = sum(v.get("taluka_area_km2", 0) for v in cov.values())
