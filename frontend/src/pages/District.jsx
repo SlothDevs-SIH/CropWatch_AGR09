@@ -65,9 +65,14 @@ export default function District({ onOpen }) {
                 {t.reported > 0 && <span className="chip" style={{ color: "#d14a30" }}>{t.reported} reported</span>}
               </div>
               <div className="mt-2 text-sm">
-                <b style={{ color: shareColor(t.stress_share) }}>{pct(t.stress_share)}</b> of visible farmland is behind normal
+                <b style={{ color: shareColor(t.stress_share) }}>{pct(t.share_at_compare_date ?? t.stress_share)}</b> of visible farmland is behind normal
                 <span style={{ color: "var(--muted)" }}> · Urgent {pct(t.urgent_share)}</span>
               </div>
+              {t.usual_share_median != null && (
+                <div className="mt-1 text-xs" style={{ color: t.exceeds_every_ordinary_season ? "var(--leaf)" : "var(--muted)" }}>
+                  Usual for this date: {pct(t.usual_share_median)} (highest in past seasons {pct(t.usual_share_max)}){t.exceeds_every_ordinary_season ? " · higher than any past season" : ""}
+                </div>
+              )}
               <div className="mt-2 h-2 rounded-full overflow-hidden flex" style={{ background: "var(--panel-2)" }}>
                 <div style={{ width: `${(t.urgent_share || 0) * 100}%`, background: "#d14a30" }} />
                 <div style={{ width: `${((t.stress_share || 0) - (t.urgent_share || 0)) * 100}%`, background: "#e5a823" }} />
