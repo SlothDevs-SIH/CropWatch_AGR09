@@ -6,11 +6,11 @@ Run this ahead of time (the website only shows the finished pictures, so nothing
   python render_imagery.py PartWhole Partur
   python render_imagery.py --force         redo pictures that already exist
 
-For each area it makes four pictures (JPEG) and a meta.json, in ../data/imagery/<area>/:
+For each area it makes two pictures (four with --dates) and a meta.json, in ../data/imagery/<area>/, each extending a little beyond the area so edge plots have surroundings:
   normal  a typical, ordinary past year, mid-September   (not a dry year; the year closest to the middle of the ordinary years)
   now     2026, mid-September                              (default slider: normal year on the left, 2026 on the right, same date)
-  aug     2026, mid-August
-  late    2026, late September                             (secondary slider: the same year, two dates)
+  aug     2026, mid-August                                  (--dates only)
+  late    2026, late September                              (--dates only: secondary slider, the same year on two dates)
 
 Each picture is a clear-sky composite of the clearest satellite passes near its target date. Cloud, cloud shadow and haze are removed
 (the satellite's own mask is grown by a few pixels and bright haze is rejected), and the remaining clear pixels from several passes are
@@ -41,7 +41,9 @@ BAD = (0, 1, 3, 7, 8, 9, 10, 11)          # no data, saturated, shadow, unclassi
 BRIGHT = 0.22                             # blue reflectance above this is cloud or thick haze (white roofs sit below it); thinner haze is handled by the median
 GROW = 2                                  # pixels the cloud mask is grown by, to catch cloud edges
 TARGET_BINS = slice(9, 12)                # 31 Aug to 29 Sep: three 10-day bins around mid-September, to judge a typical year
-FRAMES = {"normal": (258, 15), "now": (258, 15), "aug": (227, 20), "late": (271, 15)}    # frame: (target day of year, window in days)
+FRAMES = {"normal": (258, 15), "now": (258, 15)}                                          # frame: (target day of year, window in days)
+EXTRA_FRAMES = {"aug": (227, 20), "late": (271, 15)}                                      # only with --dates: monsoon cloud usually spoils mid-August
+MARGIN_M = {"sample_box": 1000, "whole_taluka": 600}                                      # picture extends this far beyond the area, so edge plots have surroundings
 MAX_DATES = 5                             # clearest passes (dates) blended into one picture
 THREADS = 4                               # kept low so it can run beside the long data downloads
 GOOD_ENOUGH = 85.0                        # percent clear at which we stop trying other years for the "normal" picture
@@ -202,7 +204,7 @@ def typical_years_for(name, spec):
     return year_order(means, exclude=dry_years(spec["taluka"], sorted(means))), means
 
 
-def render_area(name, force=False):
+def render_area(name, force=False, dates=False):
     spec = area_spec(name) if name in AREAS else sample_spec(name)
     folder = OUT / name
     if (folder / "meta.json").exists() and not force:
@@ -217,11 +219,16 @@ def render_area(name, force=False):
         print(f"{name}: fewer than five past seasons, skipped")
         return
     px_m = PX_M[spec["kind"]]
-    width = int(round(spec["cols"] * spec["cell_m"] / px_m))
-    height = int(round(spec["rows"] * spec["cell_m"] / px_m))
+    m = MARGIN_M[spec["kind"]]
+    w0, s0, e0, n0 = spec["bbox"]
+    dlat = m / 111320.0
+    dlon = m / (111320.0 * np.cos(np.radians((s0 + n0) / 2)))
+    spec = {**spec, "bbox": (w0 - dlon, s0 - dlat, e0 + dlon, n0 + dlat)}                    # the picture covers the area plus a margin
+    width = int(round((spec["cols"] * spec["cell_m"] + 2 * m) / px_m))
+    height = int(round((spec["rows"] * spec["cell_m"] + 2 * m) / px_m))
     folder.mkdir(parents=True, exist_ok=True)
     frames, t0 = {}, time.time()
-    for key, (doy, window) in FRAMES.items():
+    for key, (doy, window) in {**FRAMES, **(EXTRA_FRAMES if dates else {})}.items():
         if key == "normal":                                                   # try the most typical ordinary years until one is clear enough
             best = None
             for year in order[:3]:
@@ -255,9 +262,10 @@ def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("names", nargs="*")
     ap.add_argument("--force", action="store_true")
+    ap.add_argument("--dates", action="store_true", help="also render mid-August and late September (for Compare dates)")
     a = ap.parse_args()
     for n in a.names or (list(TALUKAS) + list(AREAS)):
-        render_area(n, a.force)
+        render_area(n, a.force, a.dates)
 
 
 if __name__ == "__main__":
