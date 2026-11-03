@@ -4,6 +4,7 @@ import Chart from "@/components/Chart";
 import RainStrip from "@/components/RainStrip";
 import AuthImage from "@/components/AuthImage";
 import CheckForm from "@/components/CheckForm";
+import PictureCompare from "@/components/PictureCompare";
 import { LEVELS } from "@/lib/levels";
 import { useT } from "@/lib/i18n";
 
@@ -41,6 +42,8 @@ export default function PlotPanel({ plot, user, onChanged, onPrev, onNext, onClo
         {plot.confidence && <span className="chip" style={{ color: "var(--muted)" }}>Confidence: {plot.confidence}</span>}
       </div>
       <p className="mt-3 text-sm">{plot.reason}</p>
+
+      {plot.centre && <PictureCompare plot={plot} />}
 
       {plot.series_2026 && (
         <div className="card p-3 mt-4">
