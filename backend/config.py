@@ -30,7 +30,9 @@ def box_for(lat, lon):
 
 # ---------- whole-taluka areas (coarser cells, so a whole taluka is feasible) ----------
 # The 4 km sample boxes above stay exactly as they are (the field sample refers to their cell ids).
-AREAS = {"PartWhole": {"taluka": "Partur", "prefix": "PTW", "cell_m": 300, "px_m": 60}}
+_PREFIX = {"Partur": "PTW", "Jalna": "JLW", "Badnapur": "BDW", "Ambad": "ABW", "Ghansawangi": "GSW", "Mantha": "MTW", "Jafrabad": "JFW", "Bhokardan": "BKW"}
+# one whole-taluka area per taluka; the key is "<Name>Whole" except Partur, whose key was fixed earlier
+AREAS = {("PartWhole" if t == "Partur" else f"{t}Whole"): {"taluka": t, "prefix": _PREFIX[t], "cell_m": 300, "px_m": 60} for t in TALUKAS}
 
 
 def sample_spec(name):
