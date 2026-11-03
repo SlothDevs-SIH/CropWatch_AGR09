@@ -13,6 +13,7 @@ import secrets
 import sqlite3
 import time
 import uuid
+from contextlib import asynccontextmanager
 from pathlib import Path
 
 from fastapi import Depends, FastAPI, File, Header, HTTPException, Request, UploadFile
@@ -28,7 +29,13 @@ DATA = Path(os.environ.get("CW_DATA", ROOT / "data"))   # database, secret and u
 DB = DATA / "cropwatch.db"
 TOKEN_HOURS = 12
 
-app = FastAPI(title="Crop Watch")
+@asynccontextmanager
+async def lifespan(_app):
+    load_results(); init_db()
+    yield
+
+
+app = FastAPI(title="Crop Watch", lifespan=lifespan)
 
 
 # ---------- small helpers ----------
@@ -132,11 +139,6 @@ def init_db():
                     if p["taluka"] == f["taluka"] and p["level"] == want and pid not in taken:
                         c.execute("INSERT INTO owners VALUES(?,?)", (pid, uid)); taken.add(pid); break
     c.commit(); c.close()
-
-
-@app.on_event("startup")
-def startup():
-    load_results(); init_db()
 
 
 # ---------- auth ----------
