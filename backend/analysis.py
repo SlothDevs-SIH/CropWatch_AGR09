@@ -117,3 +117,59 @@ def rain_total(name, year, upto_doy):
         return None
     d = json.loads(p.read_text())
     return round(sum(v for k, v in d.items() if k.startswith(str(year)) and SEASON_START_DOY <= doy(k) <= upto_doy), 1)
+
+
+# ---------- crop-age alignment ----------
+GREEN_UP = 0.30     # greenness at which we say the crop has come up; the bin where a cell first reaches it marks its "sowing" stage
+
+
+def sow_bins(by):
+    """{year: float array [R, C]}: the (fractional) 10-day bin where each cell first rises through GREEN_UP. NaN if it never does."""
+    out = {}
+    for y, arr in by.items():
+        sow = np.full(arr.shape[1:], np.nan, dtype=np.float32)
+        for r in range(arr.shape[1]):
+            for c in range(arr.shape[2]):
+                v = arr[:, r, c]
+                idx = np.flatnonzero(np.isfinite(v))
+                for a, b in zip(idx[:-1], idx[1:]):
+                    if v[a] < GREEN_UP <= v[b]:
+                        sow[r, c] = a + (GREEN_UP - v[a]) / (v[b] - v[a]) * (b - a)
+                        break
+                else:
+                    if idx.size and v[idx[0]] >= GREEN_UP:      # already above the line at the first reading
+                        sow[r, c] = idx[0]
+        out[y] = sow
+    return out
+
+
+def aligned_normal(by, base_years, target_sow, sow):
+    """Like normal_from, but each past season is slid in time so its green-up lines up with the target season's
+    green-up, cell by cell. That compares crops at the same age, not on the same calendar day.
+    Cells whose green-up cannot be found (in either season) fall back to the plain calendar comparison."""
+    R, C = target_sow.shape
+    stack = []
+    for y in base_years:
+        if y not in by:
+            continue
+        arr = by[y].copy()
+        shifted = np.full_like(arr, np.nan)
+        for r in range(R):
+            for c in range(C):
+                s_t, s_y = target_sow[r, c], sow[y][r, c]
+                k = int(round(s_t - s_y)) if np.isfinite(s_t) and np.isfinite(s_y) else 0
+                k = max(-6, min(6, k))                      # never slide by more than 60 days
+                col = arr[:, r, c]
+                if k > 0:
+                    shifted[k:, r, c] = col[:-k]
+                elif k < 0:
+                    shifted[:k, r, c] = col[-k:]
+                else:
+                    shifted[:, r, c] = col
+        stack.append(shifted)
+    st = np.stack(stack)
+    n = np.isfinite(st).sum(0)
+    with np.errstate(all="ignore"):
+        mean = np.nanmean(st, axis=0)
+    mean[n < MIN_BASELINE_YEARS] = np.nan
+    return mean, n
