@@ -57,18 +57,17 @@
     "2026": 0.773
    },
    "dry_seasons": [
-    2023,
-    2025
+    2023
    ],
    "rain_to_order_mm": {
-    "2019": 642.7,
-    "2020": 1001.5,
-    "2021": 692.0,
-    "2022": 769.9,
-    "2023": 548.1,
-    "2024": 748.7,
-    "2025": 555.8,
-    "2026": 413.7
+    "2019": 532.3,
+    "2020": 844.7,
+    "2021": 886.5,
+    "2022": 855.8,
+    "2023": 561.0,
+    "2024": 726.5,
+    "2025": 673.4,
+    "2026": 428.4
    }
   },
   "Badnapur": {
@@ -157,27 +156,27 @@
    "detection_date": "09-29",
    "days_before_order": -4,
    "share_by_year_at_order": {
-    "2019": 0.073,
-    "2020": 0.11,
-    "2021": 0.064,
-    "2022": 0.043,
-    "2023": 0.086,
-    "2024": 0.088,
-    "2025": 0.064,
-    "2026": 0.235
+    "2019": 0.117,
+    "2020": 0.036,
+    "2021": 0.085,
+    "2022": 0.064,
+    "2023": 0.041,
+    "2024": 0.064,
+    "2025": 0.077,
+    "2026": 0.827
    },
    "dry_seasons": [
     2023
    ],
    "rain_to_order_mm": {
-    "2019": 710.5,
-    "2020": 915.1,
-    "2021": 864.9,
-    "2022": 908.0,
-    "2023": 628.7,
-    "2024": 811.2,
-    "2025": 691.5,
-    "2026": 499.9
+    "2019": 532.3,
+    "2020": 844.7,
+    "2021": 886.5,
+    "2022": 855.8,
+    "2023": 561.0,
+    "2024": 726.5,
+    "2025": 673.4,
+    "2026": 428.4
    }
   },
   "Jafrabad": {
@@ -238,164 +237,164 @@
  },
  "sweep": [
   {
-   "false_alarm": 0.271,
-   "dry_seasons": 0.309,
-   "test_2026": 0.504,
-   "n_ordinary": 45,
-   "n_dry": 11,
+   "false_alarm": 0.277,
+   "dry_seasons": 0.311,
+   "test_2026": 0.534,
+   "n_ordinary": 46,
+   "n_dry": 10,
    "aligned": false,
    "watch": -0.06,
-   "gap": 0.038
+   "gap": 0.034
   },
   {
-   "false_alarm": 0.222,
-   "dry_seasons": 0.259,
-   "test_2026": 0.462,
-   "n_ordinary": 45,
-   "n_dry": 11,
+   "false_alarm": 0.228,
+   "dry_seasons": 0.258,
+   "test_2026": 0.493,
+   "n_ordinary": 46,
+   "n_dry": 10,
    "aligned": false,
    "watch": -0.08,
-   "gap": 0.037
+   "gap": 0.03
   },
   {
-   "false_alarm": 0.179,
-   "dry_seasons": 0.211,
-   "test_2026": 0.419,
-   "n_ordinary": 45,
-   "n_dry": 11,
+   "false_alarm": 0.184,
+   "dry_seasons": 0.21,
+   "test_2026": 0.452,
+   "n_ordinary": 46,
+   "n_dry": 10,
    "aligned": false,
    "watch": -0.1,
-   "gap": 0.032
+   "gap": 0.026
   },
   {
-   "false_alarm": 0.144,
-   "dry_seasons": 0.171,
-   "test_2026": 0.375,
-   "n_ordinary": 45,
-   "n_dry": 11,
+   "false_alarm": 0.149,
+   "dry_seasons": 0.17,
+   "test_2026": 0.41,
+   "n_ordinary": 46,
+   "n_dry": 10,
    "aligned": false,
    "watch": -0.12,
-   "gap": 0.027
+   "gap": 0.021
   },
   {
-   "false_alarm": 0.104,
-   "dry_seasons": 0.119,
-   "test_2026": 0.31,
-   "n_ordinary": 45,
-   "n_dry": 11,
+   "false_alarm": 0.108,
+   "dry_seasons": 0.117,
+   "test_2026": 0.346,
+   "n_ordinary": 46,
+   "n_dry": 10,
    "aligned": false,
    "watch": -0.15,
-   "gap": 0.015
-  },
-  {
-   "false_alarm": 0.075,
-   "dry_seasons": 0.079,
-   "test_2026": 0.248,
-   "n_ordinary": 45,
-   "n_dry": 11,
-   "aligned": false,
-   "watch": -0.18,
-   "gap": 0.004
-  },
-  {
-   "false_alarm": 0.048,
-   "dry_seasons": 0.042,
-   "test_2026": 0.167,
-   "n_ordinary": 45,
-   "n_dry": 11,
-   "aligned": false,
-   "watch": -0.22,
-   "gap": -0.006
-  },
-  {
-   "false_alarm": 0.031,
-   "dry_seasons": 0.022,
-   "test_2026": 0.098,
-   "n_ordinary": 45,
-   "n_dry": 11,
-   "aligned": false,
-   "watch": -0.26,
-   "gap": -0.009
-  },
-  {
-   "false_alarm": 0.27,
-   "dry_seasons": 0.303,
-   "test_2026": 0.501,
-   "n_ordinary": 45,
-   "n_dry": 11,
-   "aligned": true,
-   "watch": -0.06,
-   "gap": 0.033
-  },
-  {
-   "false_alarm": 0.221,
-   "dry_seasons": 0.253,
-   "test_2026": 0.461,
-   "n_ordinary": 45,
-   "n_dry": 11,
-   "aligned": true,
-   "watch": -0.08,
-   "gap": 0.032
-  },
-  {
-   "false_alarm": 0.18,
-   "dry_seasons": 0.209,
-   "test_2026": 0.421,
-   "n_ordinary": 45,
-   "n_dry": 11,
-   "aligned": true,
-   "watch": -0.1,
-   "gap": 0.029
-  },
-  {
-   "false_alarm": 0.147,
-   "dry_seasons": 0.172,
-   "test_2026": 0.381,
-   "n_ordinary": 45,
-   "n_dry": 11,
-   "aligned": true,
-   "watch": -0.12,
-   "gap": 0.025
-  },
-  {
-   "false_alarm": 0.106,
-   "dry_seasons": 0.125,
-   "test_2026": 0.32,
-   "n_ordinary": 45,
-   "n_dry": 11,
-   "aligned": true,
-   "watch": -0.15,
-   "gap": 0.019
+   "gap": 0.009
   },
   {
    "false_alarm": 0.077,
-   "dry_seasons": 0.088,
-   "test_2026": 0.26,
-   "n_ordinary": 45,
-   "n_dry": 11,
-   "aligned": true,
+   "dry_seasons": 0.077,
+   "test_2026": 0.285,
+   "n_ordinary": 46,
+   "n_dry": 10,
+   "aligned": false,
    "watch": -0.18,
-   "gap": 0.011
+   "gap": 0.0
   },
   {
    "false_alarm": 0.049,
-   "dry_seasons": 0.052,
-   "test_2026": 0.187,
-   "n_ordinary": 45,
-   "n_dry": 11,
-   "aligned": true,
+   "dry_seasons": 0.041,
+   "test_2026": 0.204,
+   "n_ordinary": 46,
+   "n_dry": 10,
+   "aligned": false,
    "watch": -0.22,
-   "gap": 0.003
+   "gap": -0.008
   },
   {
    "false_alarm": 0.032,
-   "dry_seasons": 0.029,
-   "test_2026": 0.12,
-   "n_ordinary": 45,
-   "n_dry": 11,
+   "dry_seasons": 0.022,
+   "test_2026": 0.129,
+   "n_ordinary": 46,
+   "n_dry": 10,
+   "aligned": false,
+   "watch": -0.26,
+   "gap": -0.01
+  },
+  {
+   "false_alarm": 0.272,
+   "dry_seasons": 0.307,
+   "test_2026": 0.525,
+   "n_ordinary": 46,
+   "n_dry": 10,
+   "aligned": true,
+   "watch": -0.06,
+   "gap": 0.035
+  },
+  {
+   "false_alarm": 0.224,
+   "dry_seasons": 0.256,
+   "test_2026": 0.486,
+   "n_ordinary": 46,
+   "n_dry": 10,
+   "aligned": true,
+   "watch": -0.08,
+   "gap": 0.032
+  },
+  {
+   "false_alarm": 0.183,
+   "dry_seasons": 0.213,
+   "test_2026": 0.449,
+   "n_ordinary": 46,
+   "n_dry": 10,
+   "aligned": true,
+   "watch": -0.1,
+   "gap": 0.03
+  },
+  {
+   "false_alarm": 0.148,
+   "dry_seasons": 0.174,
+   "test_2026": 0.41,
+   "n_ordinary": 46,
+   "n_dry": 10,
+   "aligned": true,
+   "watch": -0.12,
+   "gap": 0.026
+  },
+  {
+   "false_alarm": 0.106,
+   "dry_seasons": 0.128,
+   "test_2026": 0.354,
+   "n_ordinary": 46,
+   "n_dry": 10,
+   "aligned": true,
+   "watch": -0.15,
+   "gap": 0.022
+  },
+  {
+   "false_alarm": 0.077,
+   "dry_seasons": 0.09,
+   "test_2026": 0.297,
+   "n_ordinary": 46,
+   "n_dry": 10,
+   "aligned": true,
+   "watch": -0.18,
+   "gap": 0.013
+  },
+  {
+   "false_alarm": 0.05,
+   "dry_seasons": 0.054,
+   "test_2026": 0.225,
+   "n_ordinary": 46,
+   "n_dry": 10,
+   "aligned": true,
+   "watch": -0.22,
+   "gap": 0.004
+  },
+  {
+   "false_alarm": 0.032,
+   "dry_seasons": 0.03,
+   "test_2026": 0.157,
+   "n_ordinary": 46,
+   "n_dry": 10,
    "aligned": true,
    "watch": -0.26,
-   "gap": -0.003
+   "gap": -0.002
   }
  ],
  "dry_definition": "June-October rain at most 80% of the median of pre-2026 seasons",
@@ -405,11 +404,12 @@
   "urgent": -0.36,
   "urgent_prior": -0.18
  },
+ "frozen_to_field_registration": true,
  "simple_baseline": {
   "drop": 0.2,
-  "false_alarm": 0.077,
-  "dry_seasons": 0.07,
-  "test_2026": 0.054,
+  "false_alarm": 0.068,
+  "dry_seasons": 0.066,
+  "test_2026": 0.048,
   "rule": "flag a cell whose latest clear reading is at least `drop` below its previous clear reading",
   "days_before_order": {
    "Partur": null,
