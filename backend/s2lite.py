@@ -58,17 +58,35 @@ def mgrs_tile(lat: float, lon: float) -> str:
     return mgrs.MGRS().toMGRS(lat, lon, MGRSPrecision=0)  # e.g. 43QBB
 
 
+def _retry(fn, tries=5):
+    """The public bucket sometimes drops a connection. Try again with a growing pause instead of killing a long job."""
+    import time
+    for i in range(tries):
+        try:
+            return fn()
+        except Exception:
+            if i == tries - 1:
+                raise
+            time.sleep(2 ** (i + 1))
+
+
 def _list(prefix: str) -> list[str]:
     url = f"{BUCKET}/?list-type=2&prefix={prefix}&delimiter=/&max-keys=1000"
-    with urllib.request.urlopen(url, timeout=60) as r:
-        xml = r.read().decode()
+
+    def go():
+        with urllib.request.urlopen(url, timeout=60) as r:
+            return r.read().decode()
+    xml = _retry(go)
     return [p for p in re.findall(r"<Prefix>([^<]*)</Prefix>", xml) if p != prefix]
 
 
 def _item(prefix: str) -> dict:
     sid = prefix.rstrip("/").rsplit("/", 1)[1]
-    with urllib.request.urlopen(f"{BUCKET}/{prefix}{sid}.json", timeout=60) as r:
-        return json.load(r)
+
+    def go():
+        with urllib.request.urlopen(f"{BUCKET}/{prefix}{sid}.json", timeout=60) as r:
+            return json.load(r)
+    return _retry(go)
 
 
 def covers(footprint: dict | None, bbox_ll: tuple[float, float, float, float]) -> bool:
