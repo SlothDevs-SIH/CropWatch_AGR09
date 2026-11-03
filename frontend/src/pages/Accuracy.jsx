@@ -16,10 +16,17 @@ export default function Accuracy({ onBack, inApp }) {
       ["Sample areas where the signal appeared by the order date", `${d.talukas_with_detection} of ${d.talukas_total}`, `Days before the 25 September order: ${d.days_before_order.map((x) => (x > 0 ? `+${x}` : x)).join(", ") || "none"}. Negative means after`],
     );
   }
-  const open = [
-    ["Agreement with farmer or field observations", "Not collected yet. Target 20 to 30 dated plots with photos"],
-    ["Taluka-by-taluka match with the official drought list", "List not obtained yet"],
-  ];
+  if (a?.field_check) {
+    const f = a.field_check, rg = (x) => (x ? ` (range ${pct(x[0])} to ${pct(x[1])})` : "");
+    rows.push(
+      ["Plots we flagged that were really stressed, on the ground", `${pct(f.flagged.share_stressed)}`, `${f.flagged.n} plots${rg(f.flagged.range)}`],
+      ["Plots we did not flag that were stressed anyway", `${pct(f.not_flagged.share_stressed)}`, `${f.not_flagged.n} plots${rg(f.not_flagged.range)}${f.enough_for_a_significance_claim ? "" : ". Too few plots to be sure"}`],
+    );
+  }
+  const open = (a?.not_measured || [
+    "Agreement with farmer or field observations (none collected yet)",
+    "Taluka-by-taluka match with the official drought list (list not obtained)",
+  ]).map((x) => [x.replace(/\s*\(.*\)$/, ""), (x.match(/\((.*)\)$/) || [])[1] || ""]);
 
   return (
     <div className="min-h-full p-6 overflow-auto">
