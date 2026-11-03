@@ -34,7 +34,7 @@ export default function PictureCompare({ plot }) {
     return () => { on = false; };
   }, [meta]);
 
-  const hasDates = !!(meta && meta.frames.aug && meta.frames.late);
+  const hasDates = !!(meta && meta.frames.aug && meta.frames.late && meta.frames.aug.clear_pct >= 60 && meta.frames.late.clear_pct >= 60);   // monsoon cloud often spoils August: then we do not offer a poor comparison
   const pair = mode === "years" ? ["normal", "now"] : ["aug", "late"];
 
   useEffect(() => {
