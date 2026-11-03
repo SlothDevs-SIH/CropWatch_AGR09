@@ -48,6 +48,7 @@ Already generated and sitting in `validation/field/`:
 - **26 flagged and 26 not flagged plots** (20 primary plus 6 spares in each group), drawn at random across **Partur, Ambad and Ghansawangi**.
 - Why those three: Partur and Ambad showed a strong signal. Ghansawangi showed none, so it is a built-in test of whether we raise false alarms. Spreading across three places also stops one 4 km box from deciding everything.
 - Plots in the same taluka are at least **600 m apart**, because neighbouring plots are not independent.
+- Each spare is **tied to one specific main plot** in the same taluka and group, so a swap never changes the group balance and never means a long trip. The evaluator only counts a spare when its main plot was marked not visited or refused.
 - Files: `sample_field.csv` and `.geojson` (what the team gets, shuffled, no labels, with a map link for each point), `sample_field_meta.json` (seed, settings, key fingerprint), and `sample_field_KEY_SEALED.csv` (kept local, never committed, not opened until visits end).
 - **Keep a second copy of the sealed key somewhere safe** (for example, emailed to yourself). If it is lost, the sample cannot be scored.
 
@@ -55,6 +56,7 @@ Already generated and sitting in `validation/field/`:
 
 - **Two pairs**, one phone each for GPS and photos, about 5 to 6 plots per pair per day. Forty plots is about **three to four days**.
 - Get a **letter from the college** and, if possible, an introduction through the **taluka agriculture office**, the local **Krishi Vigyan Kendra**, or a village contact. Farmers talk more readily to someone who arrives with a local face.
+- The kit is built by `backend/make_field_sheets.py`: printable sheets plus a phone page that works offline. Day-by-day steps are in `docs/FIELD_DAY_CHECKLIST.md`; `backend/field_progress.py` is the evening check.
 - Use the printable questions in `docs/FIELD_FORM.md`. Enter answers into `validation/field/observations.csv` (start from `observations_template.csv`).
 - Second person checks 10 photos and re-scores severity from the photo alone, to see how much two people agree.
 

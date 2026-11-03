@@ -1,6 +1,6 @@
 # Field form (one per plot, about 10 minutes)
 
-Print this or copy the answers into `validation/field/observations_template.csv` (one row per plot). Use the **cell id and GPS point from the sample sheet only**. Nobody on the visiting team should know which plots Crop Watch flagged. If you do know, say so on the sheet.
+Print this or use the phone page (`validation/field/sheets/field_entry.html`, built by `backend/make_field_sheets.py`). The final file is `validation/field/observations.csv` with the columns in `observations_template.csv` (one row per plot, including `visit_status` and `skip_reason`). Use the **cell id and GPS point from the sample sheet only**. Nobody on the visiting team should know which plots Crop Watch flagged. If you do know, say so on the sheet.
 
 ## Before you ask anything (say this in your own words, in Marathi or Hindi if easier)
 "We are students testing whether satellite pictures can show crop trouble early. We would like to ask about one plot, this season. We will not write your name or phone number. You can say no, or stop, at any time. We would like to take a photo of the crop or field, not of people. May we?"
@@ -25,7 +25,7 @@ Write `yes` in `consent_given` only if they agree. If no, mark the plot `no` and
 Also fill `visit_date`, your initials in `interviewer`, and anything unusual in `notes`.
 
 ## Rules that keep the result honest
-1. **Visit the plots in the order on the sheet.** If a plot cannot be visited (no access, farmer away, not the right field), write why, and use the next reserve plot **in its listed order**. Do not choose a nicer plot.
+1. **Visit the plots in the order on the sheet.** If a plot cannot be visited (no access, farmer away, not the right field), mark it **not visited**, write why, and use the **one spare named on that plot's page** (each spare is tied to a specific plot in the same taluka). Do not choose a nicer plot.
 2. **Do not pick plots that look interesting.** The sheet was drawn at random.
 3. **Record what the farmer says, not what you think.** Severity and cause are theirs.
 4. **No names, phone numbers or Aadhaar numbers anywhere.** The plot's cell id is the only identifier.
