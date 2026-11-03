@@ -164,7 +164,7 @@ def init_db():
             for want in f["want"]:
                 for pid, ft in PLOTS.items():
                     p = ft["properties"]
-                    if p["taluka"] == f["taluka"] and p["level"] == want and pid not in taken:
+                    if p["taluka"] == f["taluka"] and p.get("kind", "sample_box") == "sample_box" and p["level"] == want and pid not in taken:
                         c.execute("INSERT INTO owners VALUES(?,?)", (pid, uid)); taken.add(pid); break
     c.commit(); c.close()
 
@@ -288,6 +288,7 @@ def rain(taluka: str, u=Depends(current_user)):
     """Weekly rainfall this season against the average of 2018 to 2025 (coarse NASA POWER grid). Context, not a cause."""
     if taluka not in TALUKA_GEO:
         raise HTTPException(404, "Unknown taluka")
+    taluka = parent_of(taluka)
     from analysis import rain_weekly
     now = rain_weekly(taluka, 2026)
     past = [w for w in (rain_weekly(taluka, y) for y in range(2018, 2026)) if w]
@@ -354,7 +355,13 @@ def owned_ids(uid: int) -> set[str]:
     return r
 
 
+def parent_of(name: str) -> str:
+    """A whole-taluka area (for example PartWhole) belongs to its parent taluka for access purposes."""
+    return TALUKA_GEO[name]["properties"].get("parent_taluka", name) if name in TALUKA_GEO else name
+
+
 def can_see_taluka(u, taluka: str) -> bool:
+    taluka = parent_of(taluka)
     return u["role"] in ("admin", "district_officer") or (u["role"] == "taluka_officer" and u["taluka"] == taluka)
 
 
