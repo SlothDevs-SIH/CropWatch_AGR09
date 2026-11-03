@@ -2,14 +2,17 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import maplibregl from "maplibre-gl";
 import { api } from "@/api";
 import PlotPanel from "@/components/PlotPanel";
-import { LEVELS, STATUS } from "@/lib/levels";
+import { LEVELS } from "@/lib/levels";
+import { BIN_COUNT, DEFAULT_TH, ORDER_BIN, binDate, levelAt } from "@/lib/replay";
+import { useT } from "@/lib/i18n";
 
 const STYLE = { version: 8, sources: {}, layers: [{ id: "bg", type: "background", paint: { "background-color": "#0f140c" } }] };
-const COLOR = ["match", ["get", "level"], "urgent", LEVELS.urgent.color, "watch", LEVELS.watch.color, "normal", LEVELS.normal.color,
-  "cannot_see", LEVELS.cannot_see.color, LEVELS.not_farmland.color];
-const HEIGHT = ["match", ["get", "level"], "urgent", 90, "watch", 55, "normal", 20, "cannot_see", 8, 0];
+const LVL = ["coalesce", ["feature-state", "lvl"], ["get", "level"]];          // replay level if set, else the live level
+const COLOR = ["match", LVL, "urgent", LEVELS.urgent.color, "watch", LEVELS.watch.color, "normal", LEVELS.normal.color, "cannot_see", LEVELS.cannot_see.color, LEVELS.not_farmland.color];
+const HEIGHT = ["match", LVL, "urgent", 90, "watch", 55, "normal", 20, "cannot_see", 8, 0];
 const ORDER = { urgent: 0, watch: 1, cannot_see: 2, normal: 3 };
-const FILTERS = [["flagged", "Visit first"], ["urgent", "Urgent"], ["watch", "Watch"], ["cannot_see", "Cannot see"], ["all", "All farmland"]];
+const FIRST_REPLAY_BIN = 5;
+const FILTERS = ["flagged", "urgent", "watch", "cannot_see", "all"];
 
 const centreOf = (f) => { const c = f.geometry.coordinates[0]; return [(c[0][0] + c[2][0]) / 2, (c[0][1] + c[2][1]) / 2]; };
 function extent(fs) {
@@ -19,16 +22,25 @@ function extent(fs) {
 }
 
 export default function TalukaMap({ name, user, onBack }) {
+  const { t } = useT();
+  const farmer = user.role === "farmer";
   const [geo, setGeo] = useState(null);
   const [err, setErr] = useState("");
   const [sel, setSel] = useState(null);
   const [plot, setPlot] = useState(null);
-  const farmer = user.role === "farmer";
   const [filter, setFilter] = useState(farmer ? "all" : "flagged");
-  const box = useRef(null), mapRef = useRef(null), token = useRef(0), overview = useRef(null);
+  const [showList, setShowList] = useState(false);
+  const [bin, setBin] = useState(null);                         // null = live; otherwise the replayed 10-day bin
+  const [replayCounts, setReplayCounts] = useState(null);
+  const [series, setSeries] = useState(null);
+  const [loadingSeries, setLoadingSeries] = useState(false);
+  const [playing, setPlaying] = useState(false);
+  const [th, setTh] = useState(DEFAULT_TH);
+  const box = useRef(null), mapRef = useRef(null), token = useRef(0), overview = useRef(null), replayed = useRef(new Map());
 
   const loadGeo = useCallback(() => api(`/api/talukas/${name}`).then(setGeo).catch((e) => setErr(e.message)), [name]);
   useEffect(() => { loadGeo(); }, [loadGeo]);
+  useEffect(() => { fetch("/api/accuracy").then((r) => r.json()).then((a) => a.thresholds && setTh(a.thresholds)).catch(() => {}); }, []);
 
   const farm = useMemo(() => (geo ? geo.features.filter((f) => f.properties.level !== "not_farmland") : []), [geo]);
   const counts = useMemo(() => {
@@ -36,34 +48,34 @@ export default function TalukaMap({ name, user, onBack }) {
     farm.forEach((f) => { c[f.properties.level]++; });
     return c;
   }, [farm]);
+  const shown = replayCounts || counts;
+  const seen = shown.urgent + shown.watch + shown.normal;
   const list = useMemo(() => {
     const ok = (l) => (filter === "all" ? true : filter === "flagged" ? l !== "normal" : l === filter);
     return farm.filter((f) => ok(f.properties.level)).sort((a, b) =>
       ORDER[a.properties.level] - ORDER[b.properties.level] || (a.properties.deviation ?? 0) - (b.properties.deviation ?? 0));
   }, [farm, filter]);
 
-  // ----- map -----
+  // ----- camera -----
   const fly = useCallback((f) => {
     const map = mapRef.current; if (!map) return;
     const my = ++token.current;
     map.stop();
-    map.flyTo({ center: centreOf(f), zoom: 16.2, pitch: 62, bearing: (map.getBearing() + 70) % 360, duration: 3400, curve: 1.9, essential: true });
-    map.once("moveend", () => {      // slow orbit once we arrive, unless another move started meanwhile
-      if (token.current === my) map.easeTo({ bearing: map.getBearing() + 25, duration: 9000, easing: (t) => t, essential: true });
-    });
+    map.flyTo({ center: centreOf(f), zoom: 16, pitch: 62, bearing: (map.getBearing() + 70) % 360, duration: 3200, curve: 1.9, essential: true });
+    map.once("moveend", () => { if (token.current === my) map.easeTo({ bearing: map.getBearing() + 25, duration: 9000, easing: (x) => x, essential: true }); });
   }, []);
-
   const showOverview = useCallback(() => {
     const map = mapRef.current; if (!map || !overview.current) return;
-    token.current++;
-    map.stop();
+    token.current++; map.stop();
     map.flyTo({ ...overview.current, pitch: 45, bearing: -20, duration: 2600, curve: 1.6, essential: true });
   }, []);
 
+  // ----- map -----
   useEffect(() => {
     if (!geo || mapRef.current) return;
-    const ext = extent(geo.features);
-    const map = new maplibre_map(box.current, ext);
+    const bb = geo.properties.bbox;
+    const ext = farmer ? extent(geo.features) : [[bb[0], bb[1]], [bb[2], bb[3]]];
+    const map = new maplibregl.Map({ container: box.current, style: STYLE, bounds: ext, fitBoundsOptions: { padding: 40 }, zoom: 8, attributionControl: false });
     mapRef.current = map;
     map.on("load", () => {
       map.addSource("cells", { type: "geojson", data: geo, promoteId: "id" });
@@ -71,16 +83,16 @@ export default function TalukaMap({ name, user, onBack }) {
       map.addLayer({ id: "cells", type: "fill-extrusion", source: "cells", filter: ["!=", ["get", "level"], "not_farmland"],
         paint: { "fill-extrusion-color": COLOR, "fill-extrusion-height": 0, "fill-extrusion-opacity": 0.92 } });
       map.addLayer({ id: "sel", type: "fill-extrusion", source: "cells", filter: ["==", ["get", "id"], ""],
-        paint: { "fill-extrusion-color": "#ffffff", "fill-extrusion-height": 130, "fill-extrusion-opacity": 0.4 } });
-      map.on("click", "cells", (e) => { const id = e.features[0].properties.id; pick(id); });
+        paint: { "fill-extrusion-color": "#ffffff", "fill-extrusion-height": 130, "fill-extrusion-opacity": 0.45 } });
+      map.on("click", "cells", (e) => pickRef.current(e.features[0].properties.id));
       map.on("mouseenter", "cells", () => { map.getCanvas().style.cursor = "pointer"; });
       map.on("mouseleave", "cells", () => { map.getCanvas().style.cursor = ""; });
-      const cam = map.cameraForBounds(ext, { padding: 60 });
+      const cam = map.cameraForBounds(ext, { padding: 40 });
       overview.current = { center: cam.center, zoom: cam.zoom };
       map.flyTo({ ...overview.current, pitch: 45, bearing: -20, duration: 3000, curve: 1.6, essential: true });
-      const t0 = performance.now();                       // cells grow up out of the ground
-      const step = (t) => {
-        const k = Math.min((t - t0) / 1600, 1), e = 1 - Math.pow(1 - k, 3);
+      const t0 = performance.now();                                           // cells grow up out of the ground
+      const step = (now) => {
+        const k = Math.min((now - t0) / 1600, 1), e = 1 - Math.pow(1 - k, 3);
         map.setPaintProperty("cells", "fill-extrusion-height", ["*", e, HEIGHT]);
         if (k < 1) requestAnimationFrame(step);
       };
@@ -89,28 +101,52 @@ export default function TalukaMap({ name, user, onBack }) {
     return () => { map.remove(); mapRef.current = null; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [!!geo]);
-
+  useEffect(() => { const m = mapRef.current; if (m?.getSource("cells")) m.getSource("cells").setData(geo); }, [geo]);
   useEffect(() => {
-    const map = mapRef.current;
-    if (map?.getSource("cells")) map.getSource("cells").setData(geo);
-  }, [geo]);
+    const m = mapRef.current;
+    if (m?.getLayer("sel")) m.setFilter("sel", ["==", ["get", "id"], sel || ""]);
+    setTimeout(() => m?.resize(), 60);
+  }, [sel, showList]);
 
+  // ----- season replay -----
+  const applyBin = useCallback((b) => {
+    const m = mapRef.current;
+    if (!m?.getSource("cells")) return;
+    if (b == null) { m.removeFeatureState({ source: "cells" }); replayed.current.clear(); setReplayCounts(null); return; }
+    if (!series) return;
+    const c = { urgent: 0, watch: 0, normal: 0, cannot_see: 0 };
+    series.ids.forEach((id, i) => {
+      const lvl = levelAt(series.now[i], series.normal[i], b, th);
+      c[lvl]++;
+      if (replayed.current.get(id) !== lvl) { m.setFeatureState({ source: "cells", id }, { lvl }); replayed.current.set(id, lvl); }
+    });
+    setReplayCounts(c);
+  }, [series, th]);
+  useEffect(() => { applyBin(bin); }, [bin, applyBin]);
+
+  async function startReplay() {
+    if (!series && !loadingSeries) {
+      setLoadingSeries(true);
+      try { setSeries(await api(`/api/talukas/${name}/series`)); } catch (e) { setErr(e.message); } finally { setLoadingSeries(false); }
+    }
+    setBin((b) => (b == null ? FIRST_REPLAY_BIN : b));
+  }
   useEffect(() => {
-    const map = mapRef.current;
-    if (map?.getLayer("sel")) map.setFilter("sel", ["==", ["get", "id"], sel || ""]);
-    setTimeout(() => map?.resize(), 50);
-  }, [sel]);
+    if (!playing) return;
+    const id = setInterval(() => setBin((b) => { if (b == null || b >= BIN_COUNT - 1) { setPlaying(false); return BIN_COUNT - 1; } return b + 1; }), 900);
+    return () => clearInterval(id);
+  }, [playing]);
 
   // ----- selection -----
   const pickRef = useRef();
-  const pick = (id) => pickRef.current(id);
   pickRef.current = (id) => {
     const f = geo.features.find((x) => x.properties.id === id);
     if (!f) return;
-    setSel(id);
+    setSel(id); setShowList(false);
     api(`/api/plots/${id}`).then(setPlot).catch((e) => setErr(e.message));
     fly(f);
   };
+  const pick = (id) => pickRef.current(id);
   const step = (d) => {
     if (!list.length) return;
     const i = list.findIndex((f) => f.properties.id === sel);
@@ -119,70 +155,117 @@ export default function TalukaMap({ name, user, onBack }) {
   const close = () => { setSel(null); setPlot(null); showOverview(); };
   const changed = () => { loadGeo(); if (sel) api(`/api/plots/${sel}`).then(setPlot); };
 
-  if (err && !geo) return <div className="p-8" style={{ color: "#d14a30" }}>{err}</div>;
-  if (!geo) return <div className="p-8" style={{ color: "var(--muted)" }}>Loading {name}…</div>;
+  if (err && !geo) return <div className="p-8" style={{ color: "var(--rust)" }}>{err}</div>;
+  if (!geo) return <div className="p-8" style={{ color: "var(--muted)" }}>{t("loading")}</div>;
 
-  const sum = geo.properties, seen = counts.urgent + counts.watch + counts.normal;
-  return (
-    <div className="h-full flex">
-      <aside className="w-[340px] shrink-0 border-r flex flex-col min-h-0" style={{ borderColor: "var(--line)", background: "var(--panel)" }}>
-        <div className="p-4 border-b" style={{ borderColor: "var(--line)" }}>
-          {onBack && <button className="text-sm mb-2" style={{ color: "var(--muted)" }} onClick={onBack}>← District</button>}
-          <h2 className="text-xl font-bold">{name} taluka{farmer && " · your plots"}</h2>
-          <div className="text-xs" style={{ color: "var(--muted)" }}>Sample area · as of {sum.as_of} · {farm.length} plot-sized cells</div>
-          <div className="grid grid-cols-4 gap-2 mt-3 text-center">
-            {["urgent", "watch", "normal", "cannot_see"].map((k) => (
-              <div key={k} className="card py-2">
-                <b className="text-lg" style={{ color: LEVELS[k].color }}>{counts[k]}</b>
-                <div className="text-[11px]" style={{ color: "var(--muted)" }}>{LEVELS[k].label}</div>
-              </div>
-            ))}
-          </div>
-          {!farmer && seen > 0 && (
-            <div className="text-sm mt-3"><b>{Math.round(((counts.urgent + counts.watch) / seen) * 100)}%</b> of visible farmland is behind normal</div>
-          )}
-          <div className="flex flex-wrap gap-1 mt-3">
-            {FILTERS.filter(([k]) => !farmer || k === "all").map(([k, l]) => (
-              <button key={k} className="chip" style={{ background: filter === k ? "var(--accent)" : "transparent", color: filter === k ? "#12170e" : "var(--text)" }} onClick={() => setFilter(k)}>{l}</button>
-            ))}
-          </div>
+  const sum = geo.properties, whole = sum.kind === "whole_taluka";
+  const pctBehind = seen ? Math.round(((shown.urgent + shown.watch) / seen) * 100) : null;
+  const sliderBin = bin ?? BIN_COUNT - 1;
+
+  const listPane = (
+    <>
+      <div className="p-4 border-b" style={{ borderColor: "var(--line)" }}>
+        {onBack && <button className="text-sm mb-2" style={{ color: "var(--muted)" }} onClick={onBack}>← {t("district")}</button>}
+        <h2 className="text-xl font-bold">{sum.parent_taluka || name} {farmer ? `· ${t("yourPlots")}` : ""}</h2>
+        <div className="text-xs" style={{ color: "var(--muted)" }}>
+          {whole ? "Whole taluka" : "4 km sample box"} · {t("asOf")} {sum.as_of} · {farm.length.toLocaleString()} cells of {sum.cell_m || 200} m
         </div>
-        <div className="flex-1 overflow-auto scroll-thin p-3 flex flex-col gap-2">
-          {list.slice(0, 250).map((f) => {
-            const p = f.properties, lv = LEVELS[p.level];
-            return (
-              <button key={p.id} onClick={() => pick(p.id)} className="card p-2 text-left"
-                style={{ borderColor: sel === p.id ? "var(--accent)" : undefined }}>
-                <div className="flex items-center gap-2">
-                  <i style={{ background: lv.color, width: 10, height: 10, borderRadius: 99, display: "inline-block" }} />
-                  <b className="text-sm">{p.id}</b>
-                  <span className="text-xs" style={{ color: "var(--muted)" }}>{lv.label}{p.deviation != null && ` · ${p.deviation.toFixed(2)}`}</span>
-                  {p.status !== "none" && <span className="chip ml-auto">{STATUS[p.status]}</span>}
-                </div>
-              </button>
-            );
-          })}
-          {list.length === 0 && <div className="text-sm p-2" style={{ color: "var(--muted)" }}>Nothing in this view.</div>}
-        </div>
-      </aside>
-      <div className="flex-1 relative min-w-0">
-        <div className="absolute inset-0"><div ref={box} style={{ width: "100%", height: "100%" }} /></div>
-        <div className="absolute left-4 bottom-4 card p-3 text-xs flex gap-3 flex-wrap" style={{ color: "var(--muted)" }}>
+        {!farmer && sum.usual_share_median != null && (
+          <div className="text-xs mt-1" style={{ color: sum.exceeds_every_ordinary_season ? "var(--leaf)" : "var(--muted)" }}>
+            {t("usualForDate")}: {Math.round(sum.usual_share_median * 100)}% · now {Math.round((sum.share_at_compare_date ?? sum.stress_share) * 100)}%{sum.exceeds_every_ordinary_season ? ` · ${t("higherThanAny")}` : ""}
+          </div>
+        )}
+        <div className="grid grid-cols-4 gap-2 mt-3 text-center">
           {["urgent", "watch", "normal", "cannot_see"].map((k) => (
-            <span key={k} className="flex items-center gap-1"><i style={{ background: LEVELS[k].color, width: 10, height: 10, borderRadius: 99, display: "inline-block" }} />{LEVELS[k].label}</span>
+            <div key={k} className="card py-2">
+              <b className="text-lg" style={{ color: LEVELS[k].color }}>{shown[k].toLocaleString()}</b>
+              <div className="text-[11px]" style={{ color: "var(--muted)" }}>{t(k)}</div>
+            </div>
           ))}
-          <span>Height = how far behind normal</span>
+        </div>
+        {!farmer && pctBehind != null && <div className="text-sm mt-3"><b>{pctBehind}%</b> of visible farmland is {t("behindNormal")}{bin != null ? ` (${binDate(bin, true)})` : ""}</div>}
+        <div className="flex flex-wrap gap-1 mt-3">
+          {FILTERS.filter((k) => !farmer || k === "all").map((k) => (
+            <button key={k} className="chip" onClick={() => setFilter(k)} style={{ background: filter === k ? "var(--leaf)" : "transparent", color: filter === k ? "#12170e" : "var(--text)" }}>
+              {k === "flagged" ? t("visitFirst") : k === "all" ? t("allFarmland") : t(k)}
+            </button>
+          ))}
         </div>
       </div>
+      <div className="flex-1 overflow-auto scroll-thin p-3 flex flex-col gap-2">
+        {list.slice(0, 250).map((f) => {
+          const p = f.properties, lv = LEVELS[p.level], sk = p.status === "reported" ? "status_reported" : p.status;
+          return (
+            <button key={p.id} onClick={() => pick(p.id)} className="card p-2 text-left" style={{ borderColor: sel === p.id ? "var(--leaf)" : undefined }}>
+              <div className="flex items-center gap-2">
+                <i style={{ background: lv.color, width: 10, height: 10, borderRadius: 99, display: "inline-block" }} />
+                <b className="text-sm">{p.id}</b>
+                <span className="text-xs" style={{ color: "var(--muted)" }}>{t(p.level)}{p.deviation != null && ` · ${p.deviation.toFixed(2)}`}</span>
+                {p.status !== "none" && <span className="chip ml-auto">{t(sk)}</span>}
+              </div>
+            </button>
+          );
+        })}
+        {list.length === 0 && <div className="text-sm p-2" style={{ color: "var(--muted)" }}>{t("noPlots")}</div>}
+        {list.length > 250 && <div className="text-xs p-2" style={{ color: "var(--muted)" }}>Showing the 250 most behind normal of {list.length.toLocaleString()}.</div>}
+      </div>
+    </>
+  );
+
+  return (
+    <div className="h-full flex relative">
+      <aside className="hidden lg:flex w-[340px] shrink-0 border-r flex-col min-h-0" style={{ borderColor: "var(--line)", background: "var(--panel)" }}>{listPane}</aside>
+
+      <div className="flex-1 relative min-w-0">
+        <div className="absolute inset-0"><div ref={box} style={{ width: "100%", height: "100%" }} /></div>
+
+        <button className="btn absolute left-3 top-3 lg:hidden" onClick={() => setShowList(true)}>☰ {t("visitFirst")}</button>
+
+        {!farmer && (
+          <div className="absolute left-3 right-3 bottom-3 card p-3" style={{ background: "rgba(24,31,20,.92)", backdropFilter: "blur(6px)" }}>
+            <div className="flex items-center gap-2 flex-wrap">
+              {bin == null ? (
+                <button className="btn btn-primary text-sm" onClick={() => { startReplay().then(() => setPlaying(true)); }}>▶ {t("replay")}</button>
+              ) : (
+                <>
+                  <button className="btn text-sm" onClick={() => setPlaying((p) => !p)}>{playing ? "❚❚" : "▶"}</button>
+                  <button className="btn text-sm" onClick={() => { setPlaying(false); setBin(null); }}>Live</button>
+                </>
+              )}
+              {loadingSeries && <span className="text-xs" style={{ color: "var(--muted)" }}>{t("loading")}</span>}
+              {bin != null && <b className="text-sm ml-1">{binDate(bin, true)}</b>}
+              <span className="text-xs ml-auto hidden sm:inline" style={{ color: "var(--muted)" }}>{t("season")}: Jun → Oct</span>
+            </div>
+            {bin != null && (
+              <div className="mt-2 relative">
+                <input type="range" className="w-full" min={FIRST_REPLAY_BIN} max={BIN_COUNT - 1} step={1} value={sliderBin} aria-label={t("replay")}
+                  onChange={(e) => { setPlaying(false); setBin(Number(e.target.value)); }} />
+                <div className="relative h-4 text-[10px]" style={{ color: "var(--ochre)" }}>
+                  <span className="absolute -translate-x-1/2 whitespace-nowrap" style={{ left: `${((ORDER_BIN - FIRST_REPLAY_BIN) / (BIN_COUNT - 1 - FIRST_REPLAY_BIN)) * 100}%` }}>▲ {t("orderDate")}</span>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+        <div className="absolute left-3 top-14 lg:top-3 lg:left-auto lg:right-3 card px-3 py-2 text-xs hidden sm:flex gap-3" style={{ color: "var(--muted)" }}>
+          {["urgent", "watch", "normal", "cannot_see"].map((k) => (
+            <span key={k} className="flex items-center gap-1"><i style={{ background: LEVELS[k].color, width: 9, height: 9, borderRadius: 99, display: "inline-block" }} />{t(k)}</span>
+          ))}
+        </div>
+      </div>
+
+      {showList && (
+        <div className="absolute inset-0 z-20 lg:hidden flex" style={{ background: "rgba(0,0,0,.5)" }} onClick={() => setShowList(false)}>
+          <div className="w-[88%] max-w-[360px] h-full flex flex-col slide-in" style={{ background: "var(--panel)" }} onClick={(e) => e.stopPropagation()}>{listPane}</div>
+        </div>
+      )}
+
       {plot && (
-        <aside className="w-[380px] shrink-0 border-l min-h-0" style={{ borderColor: "var(--line)", background: "var(--panel)" }}>
+        <aside className="absolute z-10 inset-x-0 bottom-0 h-[72%] border-t rounded-t-2xl lg:static lg:inset-auto lg:h-auto lg:w-[380px] lg:shrink-0 lg:border-t-0 lg:border-l lg:rounded-none min-h-0"
+          style={{ borderColor: "var(--line)", background: "var(--panel)" }}>
           <PlotPanel plot={plot} user={user} onChanged={changed} onPrev={() => step(-1)} onNext={() => step(1)} onClose={close} />
         </aside>
       )}
     </div>
   );
-}
-
-function maplibre_map(container, ext) {
-  return new maplibregl.Map({ container, style: STYLE, bounds: ext, fitBoundsOptions: { padding: 60 }, zoom: 8, pitch: 0, attributionControl: false });
 }
