@@ -38,15 +38,36 @@ async def lifespan(_app):
 app = FastAPI(title="Crop Watch", lifespan=lifespan)
 
 
+@app.middleware("http")
+async def security_headers(request, call_next):
+    r = await call_next(request)
+    r.headers.setdefault("X-Content-Type-Options", "nosniff")
+    r.headers.setdefault("X-Frame-Options", "DENY")
+    r.headers.setdefault("Referrer-Policy", "same-origin")
+    r.headers.setdefault("Permissions-Policy", "camera=(), microphone=(), geolocation=(self)")
+    return r
+
+
 # ---------- small helpers ----------
+PROD = os.environ.get("CW_ENV") == "production"      # production: no demo accounts, a real secret, an admin made from the environment
+
+
 def secret() -> bytes:
     p = DATA / "secret.key"
     if os.environ.get("CW_SECRET"):
         return os.environ["CW_SECRET"].encode()
+    if PROD:
+        raise RuntimeError("CW_SECRET must be set in production. Refusing to invent one.")
     if not p.exists():
         DATA.mkdir(exist_ok=True)
         p.write_text(secrets.token_hex(32))
     return p.read_text().encode()
+
+
+def check_policy(pw: str):
+    """At least 10 characters with a letter and a digit, and not the demo password. Raises a plain-language error."""
+    if len(pw) < 10 or not any(c.isalpha() for c in pw) or not any(c.isdigit() for c in pw) or pw == seed.DEMO_PASSWORD:
+        raise HTTPException(400, "Password must be at least 10 characters with a letter and a digit, and not a demo password.")
 
 
 def hash_pw(pw: str, salt: bytes | None = None) -> str:
@@ -123,6 +144,13 @@ def init_db():
                       (u["email"], u["name"], role, taluka, hash_pw(seed.DEMO_PASSWORD)))
     if "photo_id" not in [r["name"] for r in c.execute("PRAGMA table_info(checks)")]:
         c.execute("ALTER TABLE checks ADD COLUMN photo_id INTEGER")      # a check may carry one photo
+    if PROD:
+        em, pw = os.environ.get("CW_ADMIN_EMAIL", "").strip().lower(), os.environ.get("CW_ADMIN_PASSWORD", "")
+        if em and pw and not c.execute("SELECT 1 FROM users WHERE role='admin'").fetchone():
+            check_policy(pw)
+            c.execute("INSERT INTO users(email,name,role,taluka,pw) VALUES(?,?,?,?,?)", (em, "Administrator", "admin", None, hash_pw(pw)))
+        c.commit(); c.close()
+        return
     add(seed.ADMIN, "admin")
     add(seed.CENTRE, "centre_operator", "Partur")
     add(seed.DISTRICT_OFFICER, "district_officer")
@@ -192,6 +220,53 @@ def audit_log(limit: int = 100, u=Depends(current_user)):
     return rows
 
 
+
+class ChangePassword(BaseModel):
+    old_password: str
+    new_password: str
+
+
+@app.post("/api/auth/change-password")
+def change_password(b: ChangePassword, u=Depends(current_user)):
+    if not check_pw(b.old_password, u["pw"]):
+        audit(u["email"], u["role"], "password_change_failed", "")
+        raise HTTPException(401, "Current password is wrong")
+    check_policy(b.new_password)
+    c = db(); c.execute("UPDATE users SET pw=? WHERE id=?", (hash_pw(b.new_password), u["id"])); c.commit(); c.close()
+    audit(u["email"], u["role"], "password_changed", "")
+    return {"ok": True}
+
+
+ROLES = ("farmer", "taluka_officer", "district_officer", "centre_operator")
+
+
+class NewUser(BaseModel):
+    email: str
+    name: str
+    role: str
+    taluka: str | None = None
+    password: str
+
+
+@app.post("/api/admin/users")
+def create_user(b: NewUser, u=Depends(current_user)):
+    if u["role"] != "admin":
+        raise HTTPException(403, "Admins only")
+    email = b.email.strip().lower()
+    if "@" not in email or b.role not in ROLES:
+        raise HTTPException(400, "Give a valid email and one of: " + ", ".join(ROLES))
+    if b.role != "district_officer" and (b.taluka not in TALUKA_GEO):
+        raise HTTPException(400, "This role needs one of the pilot talukas: " + ", ".join(sorted(TALUKA_GEO)))
+    check_policy(b.password)
+    c = db()
+    if c.execute("SELECT 1 FROM users WHERE email=?", (email,)).fetchone():
+        c.close(); raise HTTPException(409, "That email already has an account")
+    c.execute("INSERT INTO users(email,name,role,taluka,pw) VALUES(?,?,?,?,?)", (email, b.name.strip()[:80], b.role, b.taluka, hash_pw(b.password)))
+    c.commit(); c.close()
+    audit(u["email"], u["role"], "user_created", f"{email} {b.role} {b.taluka}")
+    return {"ok": True}
+
+
 @app.get("/api/me")
 def me(u=Depends(current_user)):
     return public(u)
@@ -200,7 +275,7 @@ def me(u=Depends(current_user)):
 @app.get("/api/demo-accounts")
 def demo_accounts():
     """Fake accounts for the demo sign-in buttons. Switch off with CW_DEMO=0."""
-    if os.environ.get("CW_DEMO", "1") == "0":
+    if PROD or os.environ.get("CW_DEMO", "1") == "0":
         return []
     rows = [(seed.DISTRICT_OFFICER, "District officer"), (seed.taluka_account("Partur"), "Taluka officer, Partur"),
             (seed.FARMERS[0], "Farmer (Partur)"), (seed.FARMERS[2], "Farmer 3 (healthy plots)"),
