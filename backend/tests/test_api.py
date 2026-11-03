@@ -113,3 +113,16 @@ def test_evidence_pack_and_orders(client):
     assert client.post("/api/orders", headers=auth(client, "farmer1@partur.demo"), json={"plot_id": pid}).status_code == 403
     stats = client.get("/api/admin/stats", headers=auth(client, "admin@cropwatch.demo")).json()
     assert stats["orders"] == 1 and stats["audit"] > 0
+
+
+def test_rain_and_accuracy_endpoints(client):
+    assert client.get("/api/rain/Partur").status_code == 401                    # rainfall needs a sign-in
+    r = client.get("/api/rain/Partur", headers=auth(client, "farmer1@partur.demo"))
+    assert r.status_code == 200
+    d = r.json()
+    assert len(d["season_2026_mm"]) == 22 and len(d["average_2018_2025_mm"]) == 22 and sum(d["season_2026_mm"]) > 0
+    assert client.get("/api/rain/Nowhere", headers=auth(client, "farmer1@partur.demo")).status_code == 404
+    a = client.get("/api/accuracy")                                              # public on purpose
+    assert a.status_code == 200 and isinstance(a.json()["measured"], bool)
+    if a.json()["measured"]:
+        assert a.json()["not_measured"]                                          # what we have NOT measured is always listed
