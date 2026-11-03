@@ -50,6 +50,8 @@ The biggest single reason backend is not higher is still **scale**: 15% of the w
 - **Separates 2026 from ordinary seasons in 5 of 8 sample areas.** Across all areas: 30% of visible farmland flagged in 2026, 8% in ordinary seasons (46 taluka-seasons).
 - **Beats the simple rule clearly.** At the same false-alarm rate the simple "less green than last reading" rule flags 2026 *less* (5%) than ordinary seasons. It cannot see this drought.
 - **Not an early warning of weeks.** The signal appears around the 25 September order: +16 and +6 days in two areas, -4, -4 and -14 in others, none in three.
+- **The signal holds across a whole taluka, but the 4 km box overstated it.** For Partur as a whole (7,675 farmland cells), 47% was flagged at the order date against 2% to 9% in every ordinary season. The box had said 69%. Detection was 4 days after the order for the whole taluka, against 16 days before it for the box.
+- **A sample-box error was found and fixed.** The Mantha box had been placed in the wrong district (Lonar). It was corrected and everything rebuilt; Mantha is now the strongest signal of the eight.
 - **2026 rainfall was about 52% of the 2018 to 2025 average** at Jalna and Partur, consistent with a reported deficit near 46%.
 
 ## Backend, component by component
