@@ -13,7 +13,7 @@ NASA POWER daily rainfall (coarse grid, about 50 km), 1 June to 31 October:
 | Box | 2026 | Average 2018 to 2025 | 2026 as share of average |
 |---|---|---|---|
 | Jalna | 423 mm | about 814 mm | about 52% |
-| Partur | 439 mm | about 800 mm | about 55% |
+| Partur | 439 mm | about 839 mm | about 52% |
 
 2026 is the **driest of the nine seasons** since 2018 at both boxes. This agrees in direction and size with the reported deficit. It is a coarse estimate, and Partur and Ghansawangi fall in the same grid cell.
 
