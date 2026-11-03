@@ -1,0 +1,48 @@
+@import "tailwindcss";
+@import "@fontsource-variable/fraunces/full.css";
+@import "@fontsource-variable/fraunces/full-italic.css";
+@import "@fontsource-variable/figtree";
+
+/* Earth palette. T.R.A.C.E.-style earthy tones, pushed darker: soil, forest, leaf, wheat. No blue anywhere. */
+:root {
+  --humus: #12170f;      /* deepest soil */
+  --bg: #11160e;
+  --panel: #181f14;
+  --panel-2: #1f2819;
+  --line: #33402a;
+  --forest: #2f4a35;
+  --moss: #5e7a3e;
+  --leaf: #a9c75a;       /* living growth: primary accent */
+  --wheat: #e9d8a6;      /* harvest: highlights and text accents */
+  --ochre: #e5a823;      /* watch */
+  --rust: #d14a30;       /* urgent */
+  --sage: #8f988a;       /* cannot see */
+  --paper: #f2ece1;      /* light sections */
+  --paper-2: #e7dfcf;
+  --ink: #1e2620;
+  --text: #f1ebdd;
+  --muted: #a3ab94;
+  --accent: #a9c75a;
+  --font-display: "Fraunces Variable", Georgia, serif;
+  --font-body: "Figtree Variable", "Segoe UI", system-ui, sans-serif;
+}
+html, body, #root { height: 100%; }
+body { margin: 0; background: var(--bg); color: var(--text); font-family: var(--font-body); -webkit-font-smoothing: antialiased; }
+button { cursor: pointer; font: inherit; }
+:focus-visible { outline: 2px solid var(--wheat); outline-offset: 3px; }
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; }
+.btn { border: 1px solid var(--line); background: var(--panel-2); color: var(--text); border-radius: 10px; padding: 8px 14px; transition: .15s; }
+.btn:hover:not(:disabled) { border-color: var(--leaf); transform: translateY(-1px); }
+.btn:disabled { opacity: .45; cursor: not-allowed; }
+.btn-primary { background: var(--leaf); color: #12170e; border-color: var(--leaf); font-weight: 600; }
+.chip { display: inline-flex; align-items: center; gap: 6px; border-radius: 999px; padding: 2px 10px; font-size: 12px; font-weight: 600; border: 1px solid var(--line); }
+.slide-in { animation: slide-in .45s cubic-bezier(.2,.8,.2,1); }
+@keyframes slide-in { from { opacity: 0; transform: translateX(28px); } to { opacity: 1; transform: none; } }
+.fade-up { animation: fade-up .7s cubic-bezier(.2,.8,.2,1) both; }
+@keyframes fade-up { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: none; } }
+.maplibregl-ctrl-bottom-left, .maplibregl-ctrl-bottom-right { display: none; }
+.scroll-thin::-webkit-scrollbar { width: 8px; } .scroll-thin::-webkit-scrollbar-thumb { background: var(--line); border-radius: 8px; }
+.map-label { color: #fff; font-size: 12px; font-weight: 600; text-shadow: 0 1px 3px #000; pointer-events: none; white-space: nowrap; }
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
+}
