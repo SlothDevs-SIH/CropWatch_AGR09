@@ -234,3 +234,20 @@ def test_areas_series_and_home_area(client):
     assert client.get("/api/talukas/PartWhole/series", headers=auth(client, "farmer1@partur.demo")).status_code == 403
     pid = next(f["properties"]["id"] for f in client.get("/api/talukas/PartWhole", headers=t).json()["features"] if f["properties"]["farmland"])
     assert client.get(f"/api/plots/{pid}", headers=t).json()["reason"]                                  # the detail still carries the reason
+
+
+def test_imagery_endpoint_and_plot_position(client, tmp_path, monkeypatch):
+    import server
+    h = auth(client, "taluka.partur@jalna.demo")
+    assert client.get("/api/imagery/PartWhole", headers=h).status_code in (200, 404)         # 404 until the pictures are rendered
+    assert client.get("/api/imagery/Nowhere", headers=h).status_code == 404
+    assert client.get("/api/imagery/PartWhole").status_code == 401                         # the description needs a sign-in
+    (tmp_path / "PartWhole").mkdir()
+    (tmp_path / "PartWhole" / "meta.json").write_text(json.dumps({"area": "PartWhole", "frames": {"normal": {}, "now": {}}}))
+    monkeypatch.setattr(server, "IMG", tmp_path)
+    assert client.get("/api/imagery/PartWhole", headers=h).json()["area"] == "PartWhole"
+    monkeypatch.undo()
+    pid = next(f["properties"]["id"] for f in client.get("/api/talukas/PartWhole", headers=h).json()["features"] if f["properties"]["farmland"])
+    p = client.get(f"/api/plots/{pid}", headers=h).json()
+    lon, lat = p["centre"]
+    assert 76.0 < lon < 76.5 and 19.2 < lat < 19.8 and p["cell_m"] == 300                  # inside Partur, with the whole-taluka cell size
