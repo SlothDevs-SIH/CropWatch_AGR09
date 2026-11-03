@@ -332,6 +332,15 @@ def _accuracy_base():
 def accuracy():
     """Public. The backtest numbers, plus the field-check numbers once validation/field/field_result.json exists."""
     out = _accuracy_base()
+    checks = []
+    for f in sorted((ROOT / "validation").glob("backtest_area_*.json")):          # whole-taluka checks against their 4 km sample boxes
+        a = json.loads(f.read_text())
+        w, b = a["share_at_order_date"]["whole_taluka"], a["share_at_order_date"]["sample_box"]
+        ordinary = [v for y, v in w.items() if y != "2026" and v is not None]
+        checks.append({"taluka": a["taluka"], "farmland_cells": a["cells"], "flagged_2026": w.get("2026"), "ordinary_min": min(ordinary), "ordinary_max": max(ordinary),
+                       "sample_box_2026": b.get("2026"), "days_before_order": a["detection_days_before_order"]["whole_taluka"]})
+    if out.get("measured") and checks:
+        out["whole_taluka_check"] = checks
     fp = ROOT / "validation" / "field" / "field_result.json"
     if out.get("measured") and fp.exists():
         r = json.loads(fp.read_text())

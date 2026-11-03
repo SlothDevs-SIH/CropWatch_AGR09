@@ -127,6 +127,8 @@ def test_rain_and_accuracy_endpoints(client):
     assert a.status_code == 200 and isinstance(a.json()["measured"], bool)
     if a.json()["measured"]:
         assert a.json()["not_measured"]                                          # what we have NOT measured is always listed
+        w = a.json()["whole_taluka_check"][0]                                    # the whole-taluka result is shown with its ordinary-season range
+        assert w["taluka"] == "Partur" and w["flagged_2026"] > w["ordinary_max"] and w["sample_box_2026"] > w["flagged_2026"]
 
 
 def test_accuracy_picks_up_field_results(client, tmp_path, monkeypatch):
