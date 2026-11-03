@@ -406,7 +406,20 @@
  },
  "thresholds_how": "tuned on seasons other than 2026",
  "crop_age_aligned": true,
- "whole_taluka_areas": {},
+ "whole_taluka_areas": {
+  "Partur": {
+   "taluka": "PartWhole",
+   "farmland_cells": 7675,
+   "visible_cells": 7586,
+   "stress_share": 0.56,
+   "cannot_see_share": 0.012,
+   "share_at_compare_date": 0.543,
+   "usual_share_median": 0.057,
+   "usual_share_max": 0.173,
+   "excess_over_usual": 0.486,
+   "cell_m": 300
+  }
+ },
  "ranked_by": "excess over the usual share of flagged farmland for this date (median of other seasons)",
  "note": "Each taluka in the ranking is represented by one 4 km sample box. Farmland is from ESA WorldCover. Percentages are not accuracy figures."
 }
