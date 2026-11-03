@@ -1,0 +1,70 @@
+{
+ "per_taluka": {
+  "Partur": {
+   "outline_name": "Partur",
+   "taluka_area_km2": 762,
+   "box_km2": 16.0,
+   "box_share_of_taluka_pct": 2.1,
+   "box_fully_inside": true,
+   "box_inside_its_own_taluka": true
+  },
+  "Jalna": {
+   "outline_name": "Jalna",
+   "taluka_area_km2": 1182,
+   "box_km2": 16.0,
+   "box_share_of_taluka_pct": 1.35,
+   "box_fully_inside": true,
+   "box_inside_its_own_taluka": true
+  },
+  "Badnapur": {
+   "outline_name": "Badnapur",
+   "taluka_area_km2": 788,
+   "box_km2": 16.0,
+   "box_share_of_taluka_pct": 2.03,
+   "box_fully_inside": true,
+   "box_inside_its_own_taluka": true
+  },
+  "Ambad": {
+   "outline_name": "Ambad",
+   "taluka_area_km2": 1143,
+   "box_km2": 16.0,
+   "box_share_of_taluka_pct": 1.4,
+   "box_fully_inside": true,
+   "box_inside_its_own_taluka": true
+  },
+  "Ghansawangi": {
+   "outline_name": "Ghansawangi",
+   "taluka_area_km2": 1114,
+   "box_km2": 16.0,
+   "box_share_of_taluka_pct": 1.44,
+   "box_fully_inside": true,
+   "box_inside_its_own_taluka": true
+  },
+  "Mantha": {
+   "outline_name": "Mantha",
+   "taluka_area_km2": 788,
+   "box_km2": 16.0,
+   "box_share_of_taluka_pct": 2.03,
+   "box_fully_inside": true,
+   "box_inside_its_own_taluka": true
+  },
+  "Jafrabad": {
+   "outline_name": "Jafferabad",
+   "taluka_area_km2": 725,
+   "box_km2": 16.0,
+   "box_share_of_taluka_pct": 2.21,
+   "box_fully_inside": true,
+   "box_inside_its_own_taluka": true
+  },
+  "Bhokardan": {
+   "outline_name": "Bhokardan",
+   "taluka_area_km2": 1187,
+   "box_km2": 16.0,
+   "box_share_of_taluka_pct": 1.35,
+   "box_fully_inside": true,
+   "box_inside_its_own_taluka": true
+  }
+ },
+ "district_area_km2_from_outlines": 7688,
+ "sample_area_km2": 128.0
+}
