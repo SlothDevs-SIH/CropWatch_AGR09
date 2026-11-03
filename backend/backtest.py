@@ -26,7 +26,7 @@ OUT = Path(__file__).resolve().parent.parent / "validation"
 ASOF_BINS = list(range(5, 15))                       # 21 July to 28 October
 ORDER_DOY = 268                                      # 25 September 2026, the state drought order
 TEST_YEAR = 2026
-FALSE_ALARM_TARGET = 0.15
+FALSE_ALARM_TARGET = 0.10
 DRY_FRACTION = 0.80
 SWEEP = (-0.06, -0.08, -0.10, -0.12, -0.15, -0.18, -0.22, -0.26)
 
