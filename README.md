@@ -9,6 +9,8 @@ This folder is where we build the real project. Start here.
 
 `C:\Soham\college work\CropWatch\`. This is a new project, separate from GeoAI. The two main files are `docs/BACKEND.md` and `docs/FRONTEND.md`.
 
+**New here? Read `docs/ACCESS_GUIDE.md`.** To run it, double-click `start_cropwatch.bat`.
+
 ## Decisions so far
 
 | Decision | Status |
