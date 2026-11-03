@@ -1,4 +1,4 @@
-# Crop Watch: Progress Report (updated 4 November 2026, backend and data push)
+# Crop Watch: Progress Report (updated 4 November 2026, field plan added)
 
 **How to read the percentages.** They are my estimates, not measurements. A percentage means: how much of what we planned for a demo we could defend in front of a jury is built and tested.
 
@@ -9,10 +9,10 @@
 | Backend | **about 72%** (was 42%) | Farmland mask, rainfall, crop-age alignment, tuned thresholds, baseline comparison, audit log, lockout, photos, evidence pack, orders, 8 tests |
 | Data | **about 55%** (was 15%) | Seven past seasons, rainfall, farmland mask, state and district outlines, drought-event notes |
 | Frontend | **about 55%** (was 52%) | Accuracy page and district cards now show real numbers. Landing text corrected |
-| Validation | **about 45%** (was 10%) | Backtest, baseline comparison, rainfall cross-check. No ground observations yet |
-| **Whole project** | **about 58%** (was 40%) | |
+| Validation | **about 52%** (was 45%) | Backtest, baseline comparison, rainfall cross-check, **field plan, blind sample and evaluator built**. Still no ground observations |
+| **Whole project** | **about 60%** (was 58%) | The ground check is designed and ready to run, but not run |
 
-Commits: 76 on `main`. Tests: 8 passing (`backend/tests`).
+Commits: 86 on `main`. Tests: 13 passing (`backend/tests`).
 
 ## What the numbers now say (see `validation/BACKTEST.md`)
 - **Separates 2026 from ordinary seasons in 5 of 8 sample areas.** Across all areas: 26% of visible farmland flagged in 2026, 8% in ordinary seasons (45 taluka-seasons).
@@ -46,8 +46,19 @@ Commits: 76 on `main`. Tests: 8 passing (`backend/tests`).
 | Official 2026 drought list | State total confirmed (265, later 305); Jalna taluka names **not found** | Needs the resolution annex |
 | Field observations | **None** | Target 20 to 30 |
 
+## Field check (new): ready to run, not yet run
+
+| Piece | State |
+|---|---|
+| Plan (`docs/FIELD_DATA_PLAN.md`) | Written: two tracks (look back at Kharif 2026 now, forward Rabi test from December), rules fixed in advance, sample-size table |
+| Blind sample (`validation/field/sample_field.csv`) | Drawn: 26 flagged and 26 not flagged plots across Partur, Ambad and Ghansawangi, 600 m apart, shuffled, no labels. Key fingerprint committed |
+| Form and template | Written (`docs/FIELD_FORM.md`, `observations_template.csv`) |
+| Evaluator (`backend/evaluate_field.py`) | Built and tested against known statistical values; refuses a tampered key |
+| Accuracy page link | Field rows appear automatically once results exist |
+| **Field observations** | **0 collected.** Minimum worth doing is 40 plots (20 per group) |
+
 ## The risks I would not hide from a jury
-1. **Nothing is checked on the ground.** The evidence is comparison with past seasons, a rainfall cross-check and a better-than-simple-rule result.
+1. **Nothing is checked on the ground yet.** The method and tools are ready, the data is not. The evidence is comparison with past seasons, a rainfall cross-check and a better-than-simple-rule result.
 2. **"Early warning" is not supported.** Say "locates and confirms stress at about the order date, plot by plot".
 3. **Eight 4 km boxes, not eight talukas.** Thresholds were tuned on the same places that are then tested (different seasons).
 4. **Three of eight areas show no signal** (Ghansawangi, Jafrabad, Bhokardan). We should say so, not hide them.
