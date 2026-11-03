@@ -34,7 +34,7 @@ def main():
     out, cov = [], {}
     want = {plain(k): k for k in TALUKAS}
     for name, g in inside:
-        key = want.get(plain(name.split("(")[0]))
+        key = want.get({"jafferabad": "jafrabad"}.get(plain(name.split("(")[0]), plain(name.split("(")[0])))   # the file spells Jafrabad as Jafferabad
         out.append({"type": "Feature", "properties": {"name": name, "match": key}, "geometry": mapping(g.simplify(0.003, preserve_topology=True))})
     for tname, t in TALUKAS.items():
         b = box(*box_for(t["lat"], t["lon"]))
