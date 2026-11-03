@@ -12,7 +12,7 @@ import rasterio
 from rasterio.enums import Resampling
 from rasterio.windows import from_bounds
 
-from config import GRID, TALUKAS, box_for
+from config import GRID, TALUKAS
 
 OUT = Path(__file__).resolve().parent.parent / "data" / "landcover"
 BASE = "https://esa-worldcover.s3.eu-central-1.amazonaws.com/v200/2021/map/ESA_WorldCover_10m_2021_v200_{t}_Map.tif"
@@ -25,17 +25,23 @@ def tile_for(lat, lon):
 
 
 def main():
+    from config import AREAS, area_spec, sample_spec
     OUT.mkdir(parents=True, exist_ok=True)
-    for name, t in TALUKAS.items():
-        bbox = box_for(t["lat"], t["lon"])
-        with rasterio.open("/vsicurl/" + BASE.format(t=tile_for(t["lat"], t["lon"]))) as src:
-            a = src.read(1, window=from_bounds(*bbox, src.transform), out_shape=(PX, PX), resampling=Resampling.nearest)
-        n = PX // GRID
-        blocks = a.reshape(GRID, n, GRID, n).transpose(0, 2, 1, 3).reshape(GRID, GRID, n * n)
-        share = {k: np.round((blocks == v).mean(-1), 3).tolist() for k, v in CLASSES.items()}
+    for name in list(TALUKAS) + list(AREAS):
+        spec = area_spec(name) if name in AREAS else sample_spec(name)
+        bbox, rows, cols = spec["bbox"], spec["rows"], spec["cols"]
+        n = spec["cell_m"] // 10                                    # WorldCover pixels (10 m) per cell side
+        lat, lon = (bbox[1] + bbox[3]) / 2, (bbox[0] + bbox[2]) / 2
+        if tile_for(bbox[1], bbox[0]) != tile_for(bbox[3], bbox[2]):
+            raise SystemExit(f"{name} crosses a WorldCover tile edge; split it before reading")
+        with rasterio.open("/vsicurl/" + BASE.format(t=tile_for(lat, lon))) as src:
+            a = src.read(1, window=from_bounds(*bbox, src.transform), out_shape=(rows * n, cols * n), resampling=Resampling.nearest)
+        blocks = a.reshape(rows, n, cols, n).transpose(0, 2, 1, 3).reshape(rows, cols, n * n)
+        nd = 3 if rows * cols > 1000 else 3
+        share = {k: np.round((blocks == v).mean(-1), nd).tolist() for k, v in CLASSES.items()}
         (OUT / f"{name}.json").write_text(json.dumps({"source": "ESA WorldCover 2021 v200", "bbox": bbox, "share": share}, separators=(",", ":")))
         crop = np.array(share["crop"])
-        print(f"{name}: cropland {crop.mean():.0%} of box, {(crop >= 0.5).sum()} of {GRID * GRID} cells at least half cropland")
+        print(f"{name}: cropland {crop.mean():.0%} of area, {(crop >= 0.5).sum()} of {rows * cols} cells at least half cropland")
 
 
 if __name__ == "__main__":
