@@ -27,6 +27,7 @@ import seed_accounts as seed
 
 ROOT = Path(__file__).resolve().parent.parent
 RES, DIST = ROOT / "data" / "results", ROOT / "frontend" / "dist"
+IMG = ROOT / "data" / "imagery"                          # pre-rendered pictures for the before and after slider (render_imagery.py)
 DATA = Path(os.environ.get("CW_DATA", ROOT / "data"))   # database, secret and uploads live here (tests point it at a temp folder)
 DB = DATA / "cropwatch.db"
 TOKEN_HOURS = 12
@@ -474,6 +475,17 @@ def taluka_series(name: str, u=Depends(current_user)):
     return {"bins_start_doy": [152 + 10 * b for b in range(16)], "ids": ids, "now": now, "normal": normal, "unit": "thousandths of greenness (NDVI)"}
 
 
+@app.get("/api/imagery/{area}")
+def imagery(area: str, u=Depends(current_user)):
+    """Describes the pre-rendered pictures of an area. The images themselves are static files under /imagery/<area>/."""
+    if area not in TALUKA_GEO:
+        raise HTTPException(404, "Unknown area")
+    f = IMG / area / "meta.json"
+    if not f.exists():
+        raise HTTPException(404, "Pictures for this area have not been rendered yet")
+    return json.loads(f.read_text())
+
+
 @app.get("/api/areas")
 def areas(u=Depends(current_user)):
     """The areas this user can open: sample boxes and whole-taluka areas, with what each covers."""
@@ -496,6 +508,11 @@ def plot(pid: str, u=Depends(current_user)):
     p["report"] = reports.get(pid)
     p["status"] = status_for(p["level"], p["checks"], pid in reports)
     p["bins"] = [f"{(152 + 10 * b)}" for b in range(16)]
+    g = TALUKA_GEO.get(p.get("area", ""), {}).get("properties")
+    if g:                                                           # where this plot sits, so the picture slider can centre on it
+        w, so, e, n = g["bbox"]
+        p["centre"] = [round(w + (p["col"] + 0.5) * (e - w) / g["cols"], 6), round(n - (p["row"] + 0.5) * (n - so) / g["rows"], 6)]
+        p["cell_m"] = g.get("cell_m", 200)
     return p
 
 
@@ -706,6 +723,11 @@ def admin_stats(u=Depends(current_user)):
     out = {t: c.execute(f"SELECT COUNT(*) FROM {t}").fetchone()[0] for t in ("users", "checks", "reports", "photos", "orders", "audit")}
     c.close()
     return out
+
+
+# ---------- pictures (open Sentinel-2 data, so no sign-in is needed for the image files) ----------
+IMG.mkdir(parents=True, exist_ok=True)
+app.mount("/imagery", StaticFiles(directory=IMG), name="imagery")
 
 
 # ---------- website ----------
