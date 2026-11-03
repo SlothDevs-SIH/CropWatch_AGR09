@@ -1,5 +1,6 @@
 """Access-rule and workflow tests for the Crop Watch service. Run from backend/:  .venv/Scripts/python.exe -m pytest -q"""
 import importlib
+import json
 import os
 import sys
 import tempfile
@@ -126,3 +127,22 @@ def test_rain_and_accuracy_endpoints(client):
     assert a.status_code == 200 and isinstance(a.json()["measured"], bool)
     if a.json()["measured"]:
         assert a.json()["not_measured"]                                          # what we have NOT measured is always listed
+
+
+def test_accuracy_picks_up_field_results(client, tmp_path, monkeypatch):
+    """Made-up field numbers in a throwaway folder: checks the plumbing only, never the real validation folder."""
+    import shutil
+    import server
+    (tmp_path / "validation" / "field").mkdir(parents=True)
+    shutil.copy(Path(server.ROOT) / "validation" / "backtest.json", tmp_path / "validation" / "backtest.json")
+    fake = {"n_visits_used": 4, "main": {"n_flagged": 2, "n_unflagged": 2, "share_stressed_if_flagged": 1.0, "range_flagged": [0.34, 1.0],
+                                           "share_stressed_if_not_flagged": 0.0, "range_not_flagged": [0.0, 0.66], "kappa": 1.0, "fisher_p": 0.33,
+                                           "enough_for_a_significance_claim": False},
+            "lead_days_flag_before_farmer_noticed": {"median": None}}
+    (tmp_path / "validation" / "field" / "field_result.json").write_text(json.dumps(fake))
+    monkeypatch.setattr(server, "ROOT", tmp_path)
+    d = client.get("/api/accuracy").json()
+    assert d["field_check"]["flagged"]["n"] == 2 and d["field_check"]["enough_for_a_significance_claim"] is False
+    assert not any("field" in x.lower() for x in d["not_measured"])
+    monkeypatch.undo()
+    assert "field_check" not in client.get("/api/accuracy").json()          # no real field file exists, so none is shown

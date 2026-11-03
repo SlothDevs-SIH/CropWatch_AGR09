@@ -223,8 +223,7 @@ def rain(taluka: str, u=Depends(current_user)):
             "source": "NASA POWER PRECTOTCORR, about 50 km grid"}
 
 
-@app.get("/api/accuracy")
-def accuracy():
+def _accuracy_base():
     """What has actually been measured, with sample sizes. Public. Anything not measured is listed as such."""
     p = ROOT / "validation" / "backtest.json"
     if not p.exists():
@@ -251,6 +250,22 @@ def accuracy():
         "not_measured": ["Agreement with farmer or field observations (none collected yet)",
                          "Taluka-by-taluka match with the official drought list (list not obtained)"],
     }
+
+
+@app.get("/api/accuracy")
+def accuracy():
+    """Public. The backtest numbers, plus the field-check numbers once validation/field/field_result.json exists."""
+    out = _accuracy_base()
+    fp = ROOT / "validation" / "field" / "field_result.json"
+    if out.get("measured") and fp.exists():
+        r = json.loads(fp.read_text())
+        m = r["main"]
+        out["field_check"] = {"plots_visited": r["n_visits_used"], "flagged": {"n": m["n_flagged"], "share_stressed": m["share_stressed_if_flagged"], "range": m["range_flagged"]},
+                              "not_flagged": {"n": m["n_unflagged"], "share_stressed": m["share_stressed_if_not_flagged"], "range": m["range_not_flagged"]},
+                              "kappa": m["kappa"], "fisher_p": m.get("fisher_p"), "enough_for_a_significance_claim": m["enough_for_a_significance_claim"],
+                              "lead_days": r["lead_days_flag_before_farmer_noticed"]["median"]}
+        out["not_measured"] = [x for x in out.get("not_measured", []) if "field" not in x.lower()]
+    return out
 
 
 @app.get("/api/health")
