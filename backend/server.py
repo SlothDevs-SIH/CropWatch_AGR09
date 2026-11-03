@@ -244,8 +244,11 @@ def accuracy():
         "detection": {"talukas_with_detection": len(found), "talukas_total": len(det),
                       "days_before_order": sorted(found), "order_date": "2026-09-25",
                       "note": "Negative means the signal appeared after the order. Each taluka is one 4 km sample box."},
+        "simple_baseline": d.get("simple_baseline") and {
+            "rule": d["simple_baseline"]["rule"], "false_alarm_in_ordinary_seasons": d["simple_baseline"]["false_alarm"],
+            "flagged_in_2026_test_season": d["simple_baseline"]["test_2026"],
+            "days_before_order": sorted(x for x in d["simple_baseline"]["days_before_order"].values() if x is not None)},
         "not_measured": ["Agreement with farmer or field observations (none collected yet)",
-                         "Comparison with the simple greenness-drop baseline",
                          "Taluka-by-taluka match with the official drought list (list not obtained)"],
     }
 
