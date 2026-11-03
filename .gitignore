@@ -12,3 +12,8 @@ data/secret.key
 *.log
 backend/*_log.txt
 .env
+
+# field campaign: labels stay sealed until the visits are done (their hash is committed in the meta file)
+validation/field/*_KEY_SEALED.csv
+validation/field/observations.csv
+validation/field/photos/
