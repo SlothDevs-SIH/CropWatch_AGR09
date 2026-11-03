@@ -1,4 +1,25 @@
-# Backtest results (updated 4 November 2026, after correcting the Mantha sample box)
+# Backtest results (updated 4 November 2026: whole-taluka results added)
+
+## Update: whole-taluka results supersede the box results
+
+For six talukas we now have data for the **whole taluka** (about 7,500 to 11,800 farmland cells each, clipped to the real outline), and ran the same check with the same frozen settings (`backtest.py --area <Name>Whole`, files `backtest_area_*.json`). Share of visible farmland flagged at the order date (late September):
+
+| Taluka (whole) | 2026 | Ordinary seasons 2019 to 2025 | What the 4 km box said | First clearly unusual, days relative to the 25 Sep order |
+|---|---|---|---|---|
+| Mantha | 55% | 4% to 11% | 83% | 4 days after |
+| Jalna | 49% | 3% to 7% | 77% | 4 days after |
+| Partur | 47% | 2% to 9% | 68% | 4 days after |
+| Ghansawangi | 44% | 2% to 7% | 5% | 4 days after |
+| Ambad | 33% | 1% to 6% | 46% | 14 days after |
+| Jafrabad | 11% | 3% to 10% | 8% | not detected |
+
+**What this changes**
+- **Where:** 2026 is above every ordinary season in **5 of the 6** whole talukas. Jafrabad is marginal. Badnapur and Bhokardan are not covered whole yet.
+- **The boxes were unreliable in both directions.** They overstated Partur, Jalna, Mantha and Ambad, and **understated Ghansawangi badly** (5% against 44%). The earlier statement that three areas "show no signal" was partly an artefact of where the boxes sat.
+- **When:** there is **no lead time**. The signal first stood out 4 to 14 days *after* the order date. The earlier box-based "+16 days" for Partur was an artefact. We can show where the stress is, plot by plot, at about the time of the order. We cannot claim early warning.
+
+The sections below describe the eight 4 km sample boxes and are kept for the record. Where they conflict with this table, trust this table.
+
 
 **What this tests.** Does the rule flag the 2026 drought season much more than ordinary seasons, does it beat a plain greenness-drop rule, and how early does it notice?
 **Data.** Seven past seasons (2019 to 2025) plus 2026, eight 4 km sample boxes (one per Jalna taluka), 10-day bins June to October, farmland from ESA WorldCover. Reproduce with `backend/backtest.py --tune`. Raw output: `backtest.json`.
@@ -51,7 +72,7 @@ So the signal appears **around the order date**, a little earlier in two talukas
 ### 4. Did crop-age alignment help?
 Barely. At the chosen setting, aligned comparison flags dry seasons about 1.3 points more than ordinary ones, while calendar comparison shows no gap (0.0). That is too small, on only 10 dry taluka-seasons, to call a proven benefit. We keep alignment because it is the principled comparison (a late-sown crop is not a stressed crop), not because it won clearly.
 
-### 5. Does the 4 km box represent the whole taluka? Not fully: it overstates
+### 5. Does the 4 km box represent the whole taluka? No, it can be too high or too low (Partur: too high; Ghansawangi: too low)
 For Partur we also covered the **whole taluka** (7,675 farmland cells at 300 m, clipped to the real taluka outline) and ran the same check with the same settings (`backtest.py --area PartWhole`, file `backtest_area_PartWhole.json`).
 
 | Share of visible farmland flagged at the order date | 2026 | Ordinary seasons (2019 to 2025) |
