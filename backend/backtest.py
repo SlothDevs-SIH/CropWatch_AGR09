@@ -52,6 +52,25 @@ def shares_for(by, mask, th, align):
     return out
 
 
+def baseline_levels(arr, last_bin, drop):
+    """The simple rule: flag a cell when its latest clear reading is at least `drop` below its previous clear reading.
+    No past seasons, no crop age. Same output coding as level_series (0 normal, 1 flagged, 3 cannot see)."""
+    from analysis import STALE_BINS
+    R, C = arr.shape[1:]
+    lvl = np.full((R, C), 3, dtype=np.int8)
+    for r in range(R):
+        for c in range(C):
+            idx = np.flatnonzero(np.isfinite(arr[: last_bin + 1, r, c]))
+            if idx.size < 2 or last_bin - idx[-1] > STALE_BINS:
+                continue
+            lvl[r, c] = 1 if arr[idx[-1], r, c] - arr[idx[-2], r, c] <= -drop else 0
+    return lvl
+
+
+def baseline_shares(by, mask, drop):
+    return {Y: {b: flagged_share(baseline_levels(by[Y], b, drop), mask)[:2] for b in ASOF_BINS} for Y in sorted(by)}
+
+
 def detection_bin(res, margin=0.10, need=2):
     """First as-of bin from which 2026's flagged share beats every other season's by `margin`, `need` bins in a row."""
     others = [y for y in res if y != TEST_YEAR]
@@ -128,6 +147,32 @@ def main():
         th, align = {"watch": pick["watch"], "urgent": pick["watch"] * 2, "urgent_prior": pick["watch"]}, pick["aligned"]
         print("chosen on seasons other than 2026:", th, "aligned" if align else "calendar", "| test 2026 share:", pick["test_2026"])
 
+    baseline = None
+    if tune:
+        late = ASOF_BINS[-5:]
+
+        def base_stats(drop):
+            r = {n: baseline_shares(by, m, drop) for n, (by, m) in data.items()}
+            fa, dr, tst = [], [], []
+            for n in r:
+                for y in r[n]:
+                    v = [r[n][y][b][0] for b in late if r[n][y][b][0] is not None]
+                    if v:
+                        (tst if y == TEST_YEAR else dr if y in dry[n] else fa).append(float(np.mean(v)))
+            m = lambda x: round(float(np.mean(x)), 3) if x else None
+            return r, {"drop": drop, "false_alarm": m(fa), "dry_seasons": m(dr), "test_2026": m(tst)}
+
+        rows = []
+        for drop in (0.04, 0.06, 0.08, 0.10, 0.13, 0.16, 0.20, 0.25, 0.30):
+            r, s = base_stats(drop)
+            rows.append((r, s))
+            print("simple rule", s)
+        ok = [x for x in rows if x[1]["false_alarm"] is not None and x[1]["false_alarm"] <= FALSE_ALARM_TARGET]
+        r, s = ok[0] if ok else min(rows, key=lambda x: x[1]["false_alarm"] if x[1]["false_alarm"] is not None else 9)   # most sensitive setting within the target
+        dets = {n: detection_bin(r[n]) for n in r if TEST_YEAR in r[n]}
+        baseline = {**s, "rule": "flag a cell whose latest clear reading is at least `drop` below its previous clear reading",
+                    "days_before_order": {n: (None if b is None else ORDER_DOY - (SEASON_START_DOY + 10 * b)) for n, b in dets.items()}}
+
     res = run(th, align)
     summary = {}
     for n, r in res.items():
@@ -145,6 +190,7 @@ def main():
                "false_alarm_target": FALSE_ALARM_TARGET}
     if tune:
         payload["thresholds_tuned"] = th
+        payload["simple_baseline"] = baseline
     (OUT / "backtest.json").write_text(json.dumps(payload, indent=1))
     print(json.dumps({n: {k: s[k] for k in ("detection_date", "days_before_order")} for n, s in summary.items()}))
 
