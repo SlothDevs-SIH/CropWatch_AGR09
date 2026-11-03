@@ -22,7 +22,8 @@ from pydantic import BaseModel
 import seed_accounts as seed
 
 ROOT = Path(__file__).resolve().parent.parent
-RES, DATA, DIST = ROOT / "data" / "results", ROOT / "data", ROOT / "frontend" / "dist"
+RES, DIST = ROOT / "data" / "results", ROOT / "frontend" / "dist"
+DATA = Path(os.environ.get("CW_DATA", ROOT / "data"))   # database, secret and uploads live here (tests point it at a temp folder)
 DB = DATA / "cropwatch.db"
 TOKEN_HOURS = 12
 
@@ -74,6 +75,13 @@ def db():
     return c
 
 
+def audit(who: str, role: str, action: str, detail: str = ""):
+    """Append-only record of who did what. Never stores passwords or farmer personal data."""
+    c = db()
+    c.execute("INSERT INTO audit(at,who,role,action,detail) VALUES(datetime('now'),?,?,?,?)", (who, role, action, detail[:300]))
+    c.commit(); c.close()
+
+
 # ---------- data ----------
 PLOTS: dict[str, dict] = {}      # plot id -> feature
 TALUKA_GEO: dict[str, dict] = {}
@@ -97,6 +105,7 @@ def init_db():
     CREATE TABLE IF NOT EXISTS owners(plot_id TEXT, user_id INTEGER);
     CREATE TABLE IF NOT EXISTS checks(id INTEGER PRIMARY KEY, plot_id TEXT, kind TEXT, status TEXT, note TEXT, by_name TEXT, at TEXT);
     CREATE TABLE IF NOT EXISTS reports(plot_id TEXT PRIMARY KEY, taluka TEXT, note TEXT, by_name TEXT, at TEXT);
+    CREATE TABLE IF NOT EXISTS audit(id INTEGER PRIMARY KEY, at TEXT, who TEXT, role TEXT, action TEXT, detail TEXT);
     """)
     def add(u, role, taluka=None):
         if not c.execute("SELECT 1 FROM users WHERE email=?", (u["email"],)).fetchone():
@@ -150,6 +159,14 @@ def login(b: Login):
     if not u or not check_pw(b.password, u["pw"]):
         raise HTTPException(401, "Wrong email or password")
     return {"token": make_token(u["id"]), "user": public(dict(u))}
+
+
+@app.get("/api/audit")
+def audit_log(limit: int = 100, u=Depends(current_user)):
+    if u["role"] != "admin":
+        raise HTTPException(403, "Admins only")
+    c = db(); rows = [dict(r) for r in c.execute("SELECT * FROM audit ORDER BY id DESC LIMIT ?", (min(limit, 500),))]; c.close()
+    return rows
 
 
 @app.get("/api/me")
@@ -276,6 +293,7 @@ def add_check(pid: str, b: Check, u=Depends(current_user)):
     c.execute("INSERT INTO checks(plot_id,kind,status,note,by_name,at) VALUES(?,?,?,?,?,datetime('now'))",
               (pid, kind, b.status, b.note[:500], u["name"]))
     c.commit(); c.close()
+    audit(u["email"], u["role"], "check", f"{pid} {kind} {b.status}")
     return {"ok": True}
 
 
@@ -298,6 +316,7 @@ def report(pid: str, b: Report, u=Depends(current_user)):
     c = db()
     c.execute("INSERT OR REPLACE INTO reports VALUES(?,?,?,?,datetime('now'))", (pid, p["taluka"], b.note[:500], u["name"]))
     c.commit(); c.close()
+    audit(u["email"], u["role"], "report", pid)
     return {"ok": True}
 
 
