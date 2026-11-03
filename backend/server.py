@@ -208,6 +208,48 @@ def demo_accounts():
     return [{"label": l, "email": u["email"], "password": seed.DEMO_PASSWORD} for u, l in rows]
 
 
+@app.get("/api/rain/{taluka}")
+def rain(taluka: str, u=Depends(current_user)):
+    """Weekly rainfall this season against the average of 2018 to 2025 (coarse NASA POWER grid). Context, not a cause."""
+    if taluka not in TALUKA_GEO:
+        raise HTTPException(404, "Unknown taluka")
+    from analysis import rain_weekly
+    now = rain_weekly(taluka, 2026)
+    past = [w for w in (rain_weekly(taluka, y) for y in range(2018, 2026)) if w]
+    if now is None or not past:
+        raise HTTPException(404, "No rainfall data")
+    mean = [round(sum(w[i] for w in past) / len(past), 1) for i in range(22)]
+    return {"taluka": taluka, "week_start_doy": [152 + 7 * i for i in range(22)], "season_2026_mm": now, "average_2018_2025_mm": mean,
+            "source": "NASA POWER PRECTOTCORR, about 50 km grid"}
+
+
+@app.get("/api/accuracy")
+def accuracy():
+    """What has actually been measured, with sample sizes. Public. Anything not measured is listed as such."""
+    p = ROOT / "validation" / "backtest.json"
+    if not p.exists():
+        return {"measured": False, "message": "Backtest has not been run yet."}
+    d = json.loads(p.read_text())
+    tuned = d.get("sweep") and next((x for x in d["sweep"] if x["watch"] == d["thresholds"]["watch"] and x["aligned"] == d.get("aligned")), None)
+    det = [t["days_before_order"] for t in d["per_taluka"].values()]
+    found = [x for x in det if x is not None]
+    return {
+        "measured": True,
+        "seasons_used": d["seasons"],
+        "thresholds": d["thresholds"], "crop_age_aligned": d.get("aligned"),
+        "false_alarm_in_ordinary_seasons": tuned and {"value": tuned["false_alarm"], "n_taluka_seasons": tuned["n_ordinary"]},
+        "flagged_in_dry_seasons": tuned and {"value": tuned["dry_seasons"], "n_taluka_seasons": tuned["n_dry"]},
+        "flagged_in_2026_test_season": tuned and tuned["test_2026"],
+        "dry_season_definition": d.get("dry_definition"),
+        "detection": {"talukas_with_detection": len(found), "talukas_total": len(det),
+                      "days_before_order": sorted(found), "order_date": "2026-09-25",
+                      "note": "Negative means the signal appeared after the order. Each taluka is one 4 km sample box."},
+        "not_measured": ["Agreement with farmer or field observations (none collected yet)",
+                         "Comparison with the simple greenness-drop baseline",
+                         "Taluka-by-taluka match with the official drought list (list not obtained)"],
+    }
+
+
 @app.get("/api/health")
 def health():
     return {"ok": True, "talukas": sorted(TALUKA_GEO), "plots": len(PLOTS)}
