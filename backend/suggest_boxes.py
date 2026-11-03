@@ -1,18 +1,23 @@
 """Suggest better 4 km sample boxes: the spot near each taluka town with the most cropland (ESA WorldCover) and little built-up or water.
 
-Run:  python suggest_boxes.py Jalna Ambad Mantha     (prints the three best centres for each, within 12 km of the town)
+Run:  python suggest_boxes.py Jalna Ambad Mantha     (prints the three best centres for each, within 12 km of the town).
+Add --inside to keep only boxes fully inside the taluka's real outline (run make_taluka_outlines.py first).
 """
+import json
 import math
 import sys
+from pathlib import Path
 
 import numpy as np
 import rasterio
+from shapely.geometry import box as sbox, shape
 from rasterio.enums import Resampling
 from rasterio.windows import from_bounds
 
 from config import HALF_M, TALUKAS
 from fetch_landcover import BASE, tile_for
 
+OUTLINES = Path(__file__).resolve().parent.parent / "frontend" / "public" / "jalna_talukas.json"
 SPAN = 0.30          # degrees read around the town (about 33 km)
 OUT_PX = 900         # about 37 m per pixel, plenty for a share estimate
 SEARCH_KM = 12.0
@@ -20,7 +25,12 @@ STEP = 0.01          # candidate spacing in degrees (about 1.1 km)
 
 
 def main():
-    names = sys.argv[1:] or list(TALUKAS)
+    names = [x for x in sys.argv[1:] if not x.startswith("--")] or list(TALUKAS)
+    outline = {}
+    if "--inside" in sys.argv and OUTLINES.exists():          # keep only boxes lying fully inside the taluka's real outline
+        for f in json.loads(OUTLINES.read_text())["features"]:
+            if f["properties"].get("match"):
+                outline[f["properties"]["match"]] = shape(f["geometry"]).buffer(0)
     for name in names:
         t = TALUKAS[name]
         lat0, lon0 = t["lat"], t["lon"]
@@ -39,6 +49,8 @@ def main():
                     continue
                 box = a[r0:r1, c0:c1]
                 crop, built, water = (box == 40).mean(), (box == 50).mean(), (box == 80).mean()
+                if outline.get(name) is not None and not outline[name].contains(sbox(lo - half_lon, la - half_lat, lo + half_lon, la + half_lat)):
+                    continue
                 if built < 0.05 and water < 0.03:
                     best.append((crop, la, lo, built))
         best.sort(reverse=True)
