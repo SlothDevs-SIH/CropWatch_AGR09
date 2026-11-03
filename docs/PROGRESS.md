@@ -12,7 +12,7 @@
 | Validation | about 56% | Was 52%. Backtest corrected for Mantha; **whole-taluka check done**; still no ground observations |
 | **Whole project** | **about 62%** | Was 60%. Data was recalibrated down, then real work moved it up |
 
-Commits: 127 on `main`. Tests: 29 passing.
+Commits: 129 on `main`. Tests: 29 passing.
 
 ## Why backend is about 77% and data about 42%, not higher
 
