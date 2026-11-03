@@ -54,3 +54,13 @@ def test_a_dry_year_is_never_chosen_as_the_normal_year():
     means = {2019: 0.55, 2020: 0.60, 2021: 0.62, 2022: 0.61, 2023: 0.60, 2024: 0.63, 2025: 0.59}
     assert typical_year(means, exclude=(2023, 2020)) not in (2023, 2020)
     assert 2023 not in year_order(means, exclude=(2023,))
+
+
+def test_no_data_zeros_do_not_become_black_holes():
+    good = np.full((1, 2, 3), 0.10, dtype=np.float32)
+    nodata = np.zeros((1, 2, 3), dtype=np.float32)
+    out, filled = median_composite([(good, np.array([[True, False]])), (nodata, np.array([[False, False]]))])
+    assert bool(filled[0, 0]) and not bool(filled[0, 1])
+    assert np.allclose(out[0, 1], 0.10)                                  # the unclear pixel shows the real (least-bad) value, not the zeros
+    out2, _ = median_composite([(nodata, np.zeros((1, 2), bool))])
+    assert np.allclose(out2, 0.12)                                       # no data anywhere: neutral grey, not black

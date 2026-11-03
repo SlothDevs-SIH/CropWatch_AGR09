@@ -80,12 +80,16 @@ def median_composite(layers, fill_unclear=True):
     """Per pixel, the median of the clear values across passes. A single stray cloud edge in one pass cannot survive a median of several.
     Returns (rgb, filled). `filled` marks pixels that were clear in at least one pass. With fill_unclear, pixels that were never clear
     show the median of the unmasked values (the least-bad view) instead of a hole, so towns and edges do not become grey blobs."""
-    raw = np.stack([rgb for rgb, _ in layers])
     stack = np.stack([np.where(v[..., None], rgb, np.nan) for rgb, v in layers])
     filled = np.isfinite(stack[..., 0]).any(0)
     with np.errstate(all="ignore"):
         med = np.nanmedian(stack, axis=0)
-    out = np.where(filled[..., None], med, np.median(raw, axis=0) if fill_unclear else 0)
+        if fill_unclear:                                                       # ignore "no data" zeros: they are holes, not dark pixels
+            raw = np.stack([np.where(rgb.sum(-1, keepdims=True) > 0, rgb, np.nan) for rgb, _ in layers])
+            fallback = np.nan_to_num(np.nanmedian(raw, axis=0), nan=0.12)       # a pixel with no data in any pass becomes neutral grey
+        else:
+            fallback = 0
+    out = np.where(filled[..., None], med, fallback)
     return out.astype(np.float32), filled
 
 
