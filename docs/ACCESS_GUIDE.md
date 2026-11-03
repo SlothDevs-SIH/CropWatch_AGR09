@@ -87,18 +87,25 @@ Repository: https://github.com/SlothDevs-SIH/CropWatch_AGR09 (private).
 
 ## 6. Finish the data (whole-taluka coverage)
 
-Whole Partur is complete. Other talukas are being read in the background, one file pair each (current season, then 2019 to 2022): `data/raw/<Name>Whole.npz` and `<Name>Whole_hist.npz`. A taluka is ready when **both** files exist. Check:
-```bash
-dir CropWatch\data\raw\*Whole*
-```
-When more are ready, double-click **`refresh_results.bat`**, then restart the server. Each ready taluka is then ranked on its whole area; talukas not ready yet fall back to their 4 km sample box (the district page labels each one).
+**Done so far:** whole **Partur** and whole **Ambad** (with past seasons), plus a 4 km sample box in every taluka. Together that is about 2,000 km², roughly **26% of the district**.
 
-If the background downloads were stopped, restart any missing one from `CropWatch/backend`:
+**Still downloading in the background:** Jalna, Badnapur, Ghansawangi, Mantha, Jafrabad and Bhokardan. Each needs two files in `data/raw`: `<Name>Whole.npz` (this season) **and** `<Name>Whole_hist.npz` (2019 to 2022). A taluka is not used until **both** exist, because three past seasons are too weak a "normal" and would give misleading numbers. Check:
+```bash
+dir CropWatch\dataaw\*Whole*
+```
+
+**How the ranking behaves.** The district ranking compares like with like. The 4 km boxes overstated both Partur and Ambad, so a ranking that mixed whole talukas with boxes would be unfair. Therefore:
+- until **all eight** talukas have a whole area, every taluka is ranked on its 4 km box, and the district page shows the whole-taluka result beside it where we have one (Partur, Ambad);
+- once all eight are ready, the ranking switches to whole talukas by itself.
+
+When more files are ready, double-click **`refresh_results.bat`**, then restart the server.
+
+If a background download stopped, restart the missing one from `CropWatch/backend` (each takes about 20 to 60 minutes; a dropped connection is now retried automatically):
 ```bash
 .venv/Scripts/python.exe fetch_cells.py JalnaWhole
 .venv/Scripts/python.exe fetch_cells.py JalnaWhole --years 2019 2020 2021 2022 --tag _hist
 ```
-(each takes roughly 20 to 60 minutes). Area names: `PartWhole`, `JalnaWhole`, `BadnapurWhole`, `AmbadWhole`, `GhansawangiWhole`, `ManthaWhole`, `JafrabadWhole`, `BhokardanWhole`.
+Area names: `PartWhole`, `JalnaWhole`, `BadnapurWhole`, `AmbadWhole`, `GhansawangiWhole`, `ManthaWhole`, `JafrabadWhole`, `BhokardanWhole`.
 
 ## 7. Check that it works
 
