@@ -34,8 +34,8 @@ export default function Honesty({ onAccuracy }) {
         </div>
         <div className="lp-acc">
           <div>
-            <b>Today, our accuracy is: to be determined.</b>
-            <p>It will appear on the accuracy page the moment a file produces it, with the number of cases and a margin. If it is modest, we will show it anyway.</p>
+            <b>Measured against past seasons. Not yet checked on the ground.</b>
+            <p>The accuracy page shows every number we have, with how many cases it rests on, and lists what we have not measured. We have not yet compared alerts with farmers or field visits. If a result is modest, we show it anyway.</p>
           </div>
           <button ref={btn} className="lp-btn lp-btn-wheat" onClick={onAccuracy}>Open the accuracy page</button>
         </div>
