@@ -17,3 +17,4 @@ backend/*_log.txt
 validation/field/*_KEY_SEALED.csv
 validation/field/observations.csv
 validation/field/photos/
+validation/field/sheets/
