@@ -143,17 +143,27 @@ def main():
             continue
         (boxes if spec["kind"] == "sample_box" else areas).append(s)
         print(name, {k: s[k] for k in ("farmland_cells", "visible_cells", "stress_share", "cannot_see_share", "excess_over_usual", "rain_pct_of_mean")})
-    ranked = sorted(boxes, key=lambda s: -(s["excess_over_usual"] if s["excess_over_usual"] is not None else (s["stress_share"] or 0)))   # most unusual for the date first
+    # The ranking compares like with like. Where a taluka has a whole-taluka area it ranks on that (the 4 km box overstated Partur by about 20 points);
+    # otherwise it falls back to its sample box. The boxes stay in the file as a reference.
+    whole = {a["parent_taluka"]: a for a in areas}
+    pool = []
+    for b in boxes:
+        w = whole.get(b["parent_taluka"])
+        if w:
+            keep = ("stress_share", "share_at_compare_date", "excess_over_usual", "farmland_cells")
+            pool.append({**w, "sample_box": {k: b[k] for k in keep}})
+        else:
+            pool.append(b)
+    ranked = sorted(pool, key=lambda s: -(s["excess_over_usual"] if s["excess_over_usual"] is not None else (s["stress_share"] or 0)))   # most unusual for the date first
     for i, s in enumerate(ranked, 1):
         s["rank"] = i
         csh = s["cannot_see_share"]
         s["low_confidence"] = csh is None or csh > 0.5 or s["visible_cells"] < 30
     (OUT / "district.json").write_text(json.dumps({
         "district": DISTRICT, "talukas": ranked, "method": "v2", "thresholds": th, "thresholds_how": how, "crop_age_aligned": align,
-        "whole_taluka_areas": {a["parent_taluka"]: {k: a[k] for k in ("taluka", "farmland_cells", "visible_cells", "stress_share", "cannot_see_share",
-                                                                       "share_at_compare_date", "usual_share_median", "usual_share_max", "excess_over_usual", "cell_m")} for a in areas},
+        "sample_boxes": [{k: b[k] for k in ("taluka", "stress_share", "share_at_compare_date", "excess_over_usual", "farmland_cells")} for b in boxes],
         "ranked_by": "excess over the usual share of flagged farmland for this date (median of other seasons)",
-        "note": "Each taluka in the ranking is represented by one 4 km sample box. Farmland is from ESA WorldCover. Percentages are not accuracy figures."}, indent=1))
+        "note": "Talukas with a whole-taluka area are ranked on the whole taluka; the others on one 4 km sample box. Farmland is from ESA WorldCover. Percentages are not accuracy figures."}, indent=1))
 
 
 if __name__ == "__main__":
