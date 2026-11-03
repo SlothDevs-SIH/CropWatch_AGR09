@@ -1,0 +1,36 @@
+{
+ "talukas": [
+  "Partur",
+  "Ambad",
+  "Ghansawangi"
+ ],
+ "created": "2026-11-04",
+ "seed": 20261104,
+ "per_group": 20,
+ "reserve_per_group": 6,
+ "min_gap_cells": 3,
+ "thresholds": {
+  "watch": -0.18,
+  "urgent": -0.36,
+  "urgent_prior": -0.18
+ },
+ "thresholds_how": "tuned on seasons other than 2026",
+ "crop_age_aligned": true,
+ "pool_flagged": {
+  "Partur": 204,
+  "Ambad": 150,
+  "Ghansawangi": 67
+ },
+ "pool_unflagged": {
+  "Partur": 56,
+  "Ambad": 59,
+  "Ghansawangi": 310
+ },
+ "per_taluka_primary": {
+  "Partur": 14,
+  "Ambad": 14,
+  "Ghansawangi": 12
+ },
+ "key_sha256": "37d653d118062caff8e4b50daaeed3b520c4660ca7d3413082664b59434521b1",
+ "note": "The key file holds the labels and must stay sealed until the visits are done. Its hash is recorded here so it cannot be changed afterwards."
+}
