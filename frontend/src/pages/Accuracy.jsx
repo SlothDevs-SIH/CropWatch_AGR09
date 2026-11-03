@@ -16,6 +16,10 @@ export default function Accuracy({ onBack, inApp }) {
       ["Sample areas where the signal appeared by the order date", `${d.talukas_with_detection} of ${d.talukas_total}`, `Days before the 25 September order: ${d.days_before_order.map((x) => (x > 0 ? `+${x}` : x)).join(", ") || "none"}. Negative means after`],
     );
   }
+  (a?.whole_taluka_check || []).forEach((w) => rows.push([
+    `Whole ${w.taluka} taluka (${w.farmland_cells.toLocaleString()} farmland cells): flagged in 2026, at the order date`, pct(w.flagged_2026),
+    `Every ordinary season: ${pct(w.ordinary_min)} to ${pct(w.ordinary_max)}. The 4 km sample box said ${pct(w.sample_box_2026)}, so the box overstated it`,
+  ]));
   if (a?.field_check) {
     const f = a.field_check, rg = (x) => (x ? ` (range ${pct(x[0])} to ${pct(x[1])})` : "");
     rows.push(
