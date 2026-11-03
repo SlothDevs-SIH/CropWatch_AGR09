@@ -21,7 +21,7 @@ function extent(fs) {
   return [[w, s], [e, n]];
 }
 
-export default function TalukaMap({ name, user, onBack }) {
+export default function TalukaMap({ name, user, onBack, focus }) {
   const { t } = useT();
   const farmer = user.role === "farmer";
   const [geo, setGeo] = useState(null);
@@ -147,6 +147,10 @@ export default function TalukaMap({ name, user, onBack }) {
     fly(f);
   };
   const pick = (id) => pickRef.current(id);
+  const focused = useRef(false);
+  useEffect(() => {                                        // opened from a link to one plot (for example the reported list)
+    if (geo && focus && !focused.current) { focused.current = true; setTimeout(() => pickRef.current(focus), 3300); }
+  }, [geo, focus]);
   const step = (d) => {
     if (!list.length) return;
     const i = list.findIndex((f) => f.properties.id === sel);

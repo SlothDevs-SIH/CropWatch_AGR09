@@ -53,7 +53,7 @@ export default function PlotPanel({ plot, user, onChanged, onPrev, onNext, onClo
       )}
       <div className="card p-3 mt-3"><RainStrip taluka={plot.taluka} /></div>
 
-      {flagged && (farmer || officer) && <CheckForm plotId={plot.id} title={farmer ? t("isStressed") : t("recordVisit")} onDone={onChanged} />}
+      {flagged && (farmer || officer) && <CheckForm plotId={plot.id} title={farmer ? t("isStressed") : t("recordVisit")} onDone={onChanged} big={farmer} />}
 
       {officer && flagged && (
         <div className="card p-3 mt-3">
