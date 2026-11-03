@@ -12,7 +12,7 @@
 | Validation | **about 52%** (was 45%) | Backtest, baseline comparison, rainfall cross-check, **field plan, blind sample and evaluator built**. Still no ground observations |
 | **Whole project** | **about 60%** (was 58%) | The ground check is designed and ready to run, but not run |
 
-Commits: 86 on `main`. Tests: 13 passing (`backend/tests`).
+Commits: 94 on `main`. Tests: 14 passing (`backend/tests`).
 
 ## What the numbers now say (see `validation/BACKTEST.md`)
 - **Separates 2026 from ordinary seasons in 5 of 8 sample areas.** Across all areas: 26% of visible farmland flagged in 2026, 8% in ordinary seasons (45 taluka-seasons).
@@ -53,6 +53,9 @@ Commits: 86 on `main`. Tests: 13 passing (`backend/tests`).
 | Plan (`docs/FIELD_DATA_PLAN.md`) | Written: two tracks (look back at Kharif 2026 now, forward Rabi test from December), rules fixed in advance, sample-size table |
 | Blind sample (`validation/field/sample_field.csv`) | Drawn: 26 flagged and 26 not flagged plots across Partur, Ambad and Ghansawangi, 600 m apart, shuffled, no labels. Key fingerprint committed |
 | Form and template | Written (`docs/FIELD_FORM.md`, `observations_template.csv`) |
+| Field kit | Printable per-plot sheets and an offline phone entry page (tested in a browser: refuses missing severity, records no-consent and not-visited plots, exports the template columns) |
+| Evening checker (`backend/field_progress.py`) | Blind-safe; flags duplicates, incomplete rows and spares used without cause |
+| Field-day checklist | `docs/FIELD_DAY_CHECKLIST.md`: 40 main plots in three small areas, about one day each |
 | Evaluator (`backend/evaluate_field.py`) | Built and tested against known statistical values; refuses a tampered key |
 | Accuracy page link | Field rows appear automatically once results exist |
 | **Field observations** | **0 collected.** Minimum worth doing is 40 plots (20 per group) |
