@@ -188,3 +188,19 @@ def rain_weekly(name, year):
             if 0 <= w < 22:
                 out[w] += v
     return [round(x, 1) for x in out]
+
+
+def inside_mask(spec, R, C):
+    """Cells whose centre lies inside the taluka outline (every cell for a plain sample box)."""
+    if spec["polygon"] is None:
+        return np.ones((R, C), bool)
+    from shapely.geometry import Point
+    from shapely.prepared import prep
+    poly = prep(spec["polygon"])
+    w, s, e, n = spec["bbox"]
+    dx, dy = (e - w) / C, (n - s) / R
+    m = np.zeros((R, C), bool)
+    for r in range(R):
+        for c in range(C):
+            m[r, c] = poly.contains(Point(w + (c + 0.5) * dx, n - (r + 0.5) * dy))
+    return m

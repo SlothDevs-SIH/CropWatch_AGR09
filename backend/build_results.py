@@ -11,7 +11,7 @@ from pathlib import Path
 
 import numpy as np
 
-from analysis import (DEFAULT_TH, NBINS, aligned_normal, bin_of, binned_by_year, crop_mask, doy, flagged_share, level_series,
+from analysis import (DEFAULT_TH, NBINS, aligned_normal, bin_of, binned_by_year, crop_mask, doy, flagged_share, inside_mask, level_series,
                       load_raw, normal_from, rain_total, sow_bins)
 from backtest import shares_for
 from config import AREAS, DISTRICT, TALUKAS, area_spec, sample_spec
@@ -49,22 +49,6 @@ def cell_polygon(bbox, r, c, R, C):
     x0, y1 = w + c * dx, n - r * dy
     return [[round(x0, 6), round(y1, 6)], [round(x0 + dx, 6), round(y1, 6)], [round(x0 + dx, 6), round(y1 - dy, 6)],
             [round(x0, 6), round(y1 - dy, 6)], [round(x0, 6), round(y1, 6)]]
-
-
-def inside_mask(spec, R, C):
-    """Cells whose centre lies inside the taluka outline (all cells for a plain sample box)."""
-    if spec["polygon"] is None:
-        return np.ones((R, C), bool)
-    from shapely.prepared import prep
-    from shapely.geometry import Point
-    poly = prep(spec["polygon"])
-    w, s, e, n = spec["bbox"]
-    dx, dy = (e - w) / C, (n - s) / R
-    m = np.zeros((R, C), bool)
-    for r in range(R):
-        for c in range(C):
-            m[r, c] = poly.contains(Point(w + (c + 0.5) * dx, n - (r + 0.5) * dy))
-    return m
 
 
 def build_one(name, spec, th, align):
