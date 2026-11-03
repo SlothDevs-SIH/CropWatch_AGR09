@@ -78,6 +78,25 @@ def composite(layers):
     return out, filled
 
 
+def fill_holes(rgb, hole, iters=40):
+    """Fill hole pixels smoothly from their known neighbours, growing inward one pixel ring per pass. Holes wider than about 2 x iters stay as they are."""
+    out = rgb.copy()
+    known = ~hole
+    for _ in range(iters):
+        if known.all():
+            break
+        pk = np.pad(known.astype(np.float32), 1)
+        cnt = sum(pk[1 + dy:pk.shape[0] - 1 + dy, 1 + dx:pk.shape[1] - 1 + dx] for dy in (-1, 0, 1) for dx in (-1, 0, 1))
+        acc = np.zeros_like(out)
+        for c in range(3):
+            pc = np.pad(np.where(known, out[..., c], 0), 1)
+            acc[..., c] = sum(pc[1 + dy:pc.shape[0] - 1 + dy, 1 + dx:pc.shape[1] - 1 + dx] for dy in (-1, 0, 1) for dx in (-1, 0, 1))
+        grow_to = ~known & (cnt > 0)
+        out[grow_to] = acc[grow_to] / cnt[grow_to][:, None]
+        known |= grow_to
+    return out
+
+
 def median_composite(layers, fill_unclear=True):
     """Per pixel, the median of the clear values across passes. A single stray cloud edge in one pass cannot survive a median of several.
     Returns (rgb, filled). `filled` marks pixels that were clear in at least one pass. With fill_unclear, pixels that were never clear
@@ -91,8 +110,10 @@ def median_composite(layers, fill_unclear=True):
             fallback = np.nan_to_num(np.nanmedian(raw, axis=0), nan=0.12)       # a pixel with no data in any pass becomes neutral grey
         else:
             fallback = 0
-    out = np.where(filled[..., None], med, fallback)
-    return out.astype(np.float32), filled
+    out = np.where(filled[..., None], med, fallback).astype(np.float32)
+    if fill_unclear:                                                           # pixels never clear in any pass: smooth them from clear neighbours
+        out = fill_holes(out, ~filled)
+    return out, filled
 
 
 def typical_year(means, exclude=()):
@@ -140,7 +161,7 @@ def read_rgb(sc, bbox, shape_px):
     red, green, blue, scl = rd("B04", Resampling.bilinear), rd("B03", Resampling.bilinear), rd("B02", Resampling.bilinear), rd("SCL", Resampling.nearest)
     off = s2.detect_offset(sc.baseline, red)
     rgb = np.clip((np.stack([red, green, blue], -1) - off) / 10000.0, 0, 1.5)
-    bad = np.isin(scl, BAD) | (rgb[..., 2] > BRIGHT) | (red <= 0)
+    bad = np.isin(scl, BAD) | (rgb[..., 2] > BRIGHT) | ((red <= 0) & (scl != 6))      # very dark water reads at or below zero after correction: keep it, it is a lake
     valid = ~grow(bad) & np.isin(scl, GOOD)
     return rgb, valid
 

@@ -5,7 +5,7 @@ from pathlib import Path
 import numpy as np
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
-from render_imagery import composite, grow, median_composite, stretch, typical_year, year_order
+from render_imagery import composite, fill_holes, grow, median_composite, stretch, typical_year, year_order
 
 
 def test_stretch_gives_bright_but_not_clipped_pictures():
@@ -64,3 +64,13 @@ def test_no_data_zeros_do_not_become_black_holes():
     assert np.allclose(out[0, 1], 0.10)                                  # the unclear pixel shows the real (least-bad) value, not the zeros
     out2, _ = median_composite([(nodata, np.zeros((1, 2), bool))])
     assert np.allclose(out2, 0.12)                                       # no data anywhere: neutral grey, not black
+
+
+def test_fill_holes_smooths_a_hole_from_its_neighbours_and_leaves_big_gaps_alone():
+    img = np.full((9, 9, 3), 0.2, dtype=np.float32)
+    hole = np.zeros((9, 9), bool); hole[3:6, 3:6] = True
+    img[hole] = 0.9                                                       # garbage inside the hole
+    out = fill_holes(img, hole)
+    assert np.allclose(out[4, 4], 0.2, atol=1e-5) and np.allclose(out[0, 0], 0.2)    # the hole takes the surrounding value
+    big = np.ones((20, 20), bool)
+    assert np.allclose(fill_holes(np.full((20, 20, 3), 0.5, dtype=np.float32), big, iters=3), 0.5)   # nothing known: nothing invented
