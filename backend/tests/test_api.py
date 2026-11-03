@@ -210,8 +210,12 @@ def test_whole_taluka_area_follows_its_parent_taluka(client):
     assert len(ids) == len(set(ids)) and all(i.startswith("PTW-") for i in ids)                         # no clash with the registered PAR- sample ids
     d = client.get("/api/district", headers=auth(client, "district@jalna.demo")).json()
     parents = [t.get("parent_taluka", t["taluka"]) for t in d["talukas"]]
-    assert len(parents) == len(set(parents)) and "Partur" in parents                                      # each taluka ranked once: on its whole area when we have one
-    assert [t for t in d["talukas"] if t.get("parent_taluka") == "Partur"][0]["taluka"] == "PartWhole"
+    assert len(parents) == len(set(parents)) and "Partur" in parents                                      # each taluka ranked once
+    kinds = {t["kind"] for t in d["talukas"]}
+    assert len(kinds) == 1 and d["ranking_basis"] in kinds                                               # one basis for everyone, never a mix
+    if d["ranking_basis"] == "sample_box":                                                                # until every taluka has a whole area
+        p = [t for t in d["talukas"] if t.get("parent_taluka") == "Partur"][0]
+        assert p["whole_taluka"]["taluka"] == "PartWhole"                                                 # the whole-taluka result is shown beside it
 
 
 def test_areas_series_and_home_area(client):

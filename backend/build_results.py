@@ -19,6 +19,11 @@ from config import AREAS, DISTRICT, TALUKAS, area_spec, sample_spec
 ROOT = Path(__file__).resolve().parent.parent
 OUT = ROOT / "data" / "results"
 TEST_YEAR = 2026
+MIN_BASELINE_YEARS = 6          # a whole-taluka area is not ranked on fewer past seasons: three years (one of them dry) is too weak a "normal"
+
+
+class NotEnoughHistory(Exception):
+    pass
 NAMES = {0: "normal", 1: "watch", 2: "urgent", 3: "cannot_see"}
 
 
@@ -56,6 +61,8 @@ def build_one(name, spec, th, align):
     by = binned_by_year(dates, ndvi)
     R, C = ndvi.shape[1:]
     base_years = [y for y in sorted(by) if y < TEST_YEAR]
+    if spec["kind"] == "whole_taluka" and len(base_years) < MIN_BASELINE_YEARS:
+        raise NotEnoughHistory(f"{name}: only {len(base_years)} past seasons so far ({base_years}); waiting for the past-seasons file")
     if align:
         sow = sow_bins(by)
         normal, n_base = aligned_normal(by, base_years, sow[TEST_YEAR], sow)       # past seasons slid to the same crop age
@@ -141,29 +148,36 @@ def main():
         except FileNotFoundError:
             print(name, "no data (skipped)")
             continue
+        except NotEnoughHistory as e:
+            print("SKIPPED", e)
+            (OUT / f"taluka_{name}.geojson").unlink(missing_ok=True)               # never leave a half-baked area on disk
+            continue
         (boxes if spec["kind"] == "sample_box" else areas).append(s)
         print(name, {k: s[k] for k in ("farmland_cells", "visible_cells", "stress_share", "cannot_see_share", "excess_over_usual", "rain_pct_of_mean")})
-    # The ranking compares like with like. Where a taluka has a whole-taluka area it ranks on that (the 4 km box overstated Partur by about 20 points);
-    # otherwise it falls back to its sample box. The boxes stay in the file as a reference.
+    # The ranking must compare like with like. A 4 km box overstated Partur by about 20 points, so mixing whole talukas with boxes would
+    # make a well-measured taluka look less unusual than a badly-measured one. So: rank on whole talukas only when EVERY taluka has one;
+    # until then rank every taluka on its sample box, and show the whole-taluka result beside it where it exists.
     whole = {a["parent_taluka"]: a for a in areas}
+    all_whole = bool(boxes) and all(b["parent_taluka"] in whole for b in boxes)
+    keep = ("taluka", "stress_share", "share_at_compare_date", "excess_over_usual", "usual_share_median", "usual_share_max", "farmland_cells", "cannot_see_share")
     pool = []
     for b in boxes:
         w = whole.get(b["parent_taluka"])
-        if w:
-            keep = ("stress_share", "share_at_compare_date", "excess_over_usual", "farmland_cells")
-            pool.append({**w, "sample_box": {k: b[k] for k in keep}})
+        if all_whole:
+            pool.append({**w, "sample_box": {k: b[k] for k in keep if k in b}})
         else:
-            pool.append(b)
+            pool.append({**b, **({"whole_taluka": {k: w[k] for k in keep if k in w}} if w else {})})
+    basis = "whole_taluka" if all_whole else "sample_box"
     ranked = sorted(pool, key=lambda s: -(s["excess_over_usual"] if s["excess_over_usual"] is not None else (s["stress_share"] or 0)))   # most unusual for the date first
     for i, s in enumerate(ranked, 1):
         s["rank"] = i
         csh = s["cannot_see_share"]
         s["low_confidence"] = csh is None or csh > 0.5 or s["visible_cells"] < 30
     (OUT / "district.json").write_text(json.dumps({
-        "district": DISTRICT, "talukas": ranked, "method": "v2", "thresholds": th, "thresholds_how": how, "crop_age_aligned": align,
+        "district": DISTRICT, "talukas": ranked, "method": "v2", "ranking_basis": basis, "thresholds": th, "thresholds_how": how, "crop_age_aligned": align,
         "sample_boxes": [{k: b[k] for k in ("taluka", "stress_share", "share_at_compare_date", "excess_over_usual", "farmland_cells")} for b in boxes],
         "ranked_by": "excess over the usual share of flagged farmland for this date (median of other seasons)",
-        "note": "Talukas with a whole-taluka area are ranked on the whole taluka; the others on one 4 km sample box. Farmland is from ESA WorldCover. Percentages are not accuracy figures."}, indent=1))
+        "note": ("Every taluka is ranked on its whole area. " if all_whole else "Every taluka is ranked on one 4 km sample box so the comparison is like for like; boxes can overstate a taluka (Partur's did by about 20 points). Whole-taluka results are shown where we have them. ") + "Farmland is from ESA WorldCover. Percentages are not accuracy figures."}, indent=1))
 
 
 if __name__ == "__main__":
