@@ -1,0 +1,14 @@
+# environments and build output
+backend/.venv/
+backend/__pycache__/
+frontend/node_modules/
+frontend/dist/
+# raw satellite arrays and downloaded sources are large and reproducible (run fetch_cells.py / make_boundaries.py)
+data/raw/
+data/boundaries_src/
+# local state and secrets
+data/cropwatch.db
+data/secret.key
+*.log
+backend/*_log.txt
+.env
