@@ -173,3 +173,18 @@ def aligned_normal(by, base_years, target_sow, sow):
         mean = np.nanmean(st, axis=0)
     mean[n < MIN_BASELINE_YEARS] = np.nan
     return mean, n
+
+
+def rain_weekly(name, year):
+    """Weekly rainfall totals (mm) from 1 June, 22 weeks, or None when no rainfall file exists."""
+    p = RAIN / f"{name}.json"
+    if not p.exists():
+        return None
+    d = json.loads(p.read_text())
+    out = [0.0] * 22
+    for k, v in d.items():
+        if k.startswith(str(year)):
+            w = (doy(k) - SEASON_START_DOY) // 7
+            if 0 <= w < 22:
+                out[w] += v
+    return [round(x, 1) for x in out]
