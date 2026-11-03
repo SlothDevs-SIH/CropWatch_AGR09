@@ -1,0 +1,11 @@
+# Crop Watch backend. Python 3.12 recommended (rasterio wheels are not yet published for 3.14).
+numpy
+rasterio
+shapely
+mgrs
+fastapi
+uvicorn[standard]
+pandas
+matplotlib
+pytest
+httpx
