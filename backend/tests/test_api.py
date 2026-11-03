@@ -210,3 +210,21 @@ def test_whole_taluka_area_follows_its_parent_taluka(client):
     assert len(ids) == len(set(ids)) and all(i.startswith("PTW-") for i in ids)                         # no clash with the registered PAR- sample ids
     d = client.get("/api/district", headers=auth(client, "district@jalna.demo")).json()
     assert "PartWhole" not in [t["taluka"] for t in d["talukas"]] and "Partur" in d["whole_taluka_areas"]   # kept out of the ranking
+
+
+def test_areas_series_and_home_area(client):
+    t = auth(client, "taluka.partur@jalna.demo")
+    keys = [a["key"] for a in client.get("/api/areas", headers=t).json()]
+    assert "PartWhole" in keys and "Partur" in keys and "JalnaWhole" not in keys                        # own taluka only
+    assert client.get("/api/areas", headers=auth(client, "farmer1@partur.demo")).json() == []
+    assert len(client.get("/api/areas", headers=auth(client, "district@jalna.demo")).json()) >= len(keys)
+    assert login(client, "taluka.partur@jalna.demo").json()["user"]["home_area"] == "PartWhole"         # officers land on the whole taluka
+    assert login(client, "farmer1@partur.demo").json()["user"]["home_area"] == "Partur"                 # farmers on their own plots
+    light = client.get("/api/talukas/PartWhole", headers=t).json()["features"][0]["properties"]
+    assert "series_2026" not in light and "reason" not in light                                         # the map data stays light
+    s = client.get("/api/talukas/PartWhole/series", headers=t).json()
+    assert len(s["ids"]) == len(s["now"]) == len(s["normal"]) > 5000 and len(s["now"][0]) == 16
+    assert client.get("/api/talukas/PartWhole/series", headers=auth(client, "taluka.jalna@jalna.demo")).status_code == 403
+    assert client.get("/api/talukas/PartWhole/series", headers=auth(client, "farmer1@partur.demo")).status_code == 403
+    pid = next(f["properties"]["id"] for f in client.get("/api/talukas/PartWhole", headers=t).json()["features"] if f["properties"]["farmland"])
+    assert client.get(f"/api/plots/{pid}", headers=t).json()["reason"]                                  # the detail still carries the reason
