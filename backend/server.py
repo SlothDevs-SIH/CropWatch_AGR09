@@ -12,9 +12,10 @@ import os
 import secrets
 import sqlite3
 import time
+import uuid
 from pathlib import Path
 
-from fastapi import Depends, FastAPI, Header, HTTPException, Request
+from fastapi import Depends, FastAPI, File, Header, HTTPException, Request, UploadFile
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
@@ -105,12 +106,15 @@ def init_db():
     CREATE TABLE IF NOT EXISTS owners(plot_id TEXT, user_id INTEGER);
     CREATE TABLE IF NOT EXISTS checks(id INTEGER PRIMARY KEY, plot_id TEXT, kind TEXT, status TEXT, note TEXT, by_name TEXT, at TEXT);
     CREATE TABLE IF NOT EXISTS reports(plot_id TEXT PRIMARY KEY, taluka TEXT, note TEXT, by_name TEXT, at TEXT);
+    CREATE TABLE IF NOT EXISTS photos(id INTEGER PRIMARY KEY, plot_id TEXT, path TEXT, by_name TEXT, at TEXT);
     CREATE TABLE IF NOT EXISTS audit(id INTEGER PRIMARY KEY, at TEXT, who TEXT, role TEXT, action TEXT, detail TEXT);
     """)
     def add(u, role, taluka=None):
         if not c.execute("SELECT 1 FROM users WHERE email=?", (u["email"],)).fetchone():
             c.execute("INSERT INTO users(email,name,role,taluka,pw) VALUES(?,?,?,?,?)",
                       (u["email"], u["name"], role, taluka, hash_pw(seed.DEMO_PASSWORD)))
+    if "photo_id" not in [r["name"] for r in c.execute("PRAGMA table_info(checks)")]:
+        c.execute("ALTER TABLE checks ADD COLUMN photo_id INTEGER")      # a check may carry one photo
     add(seed.ADMIN, "admin")
     add(seed.DISTRICT_OFFICER, "district_officer")
     for t in seed.TALUKA_NAMES:
@@ -290,6 +294,7 @@ def plot(pid: str, u=Depends(current_user)):
 class Check(BaseModel):
     status: str
     note: str = ""
+    photo_id: int | None = None
 
 
 @app.post("/api/plots/{pid}/checks")
@@ -305,11 +310,58 @@ def add_check(pid: str, b: Check, u=Depends(current_user)):
     else:
         raise HTTPException(403, "Only farmers and taluka officers record checks")
     c = db()
-    c.execute("INSERT INTO checks(plot_id,kind,status,note,by_name,at) VALUES(?,?,?,?,?,datetime('now'))",
-              (pid, kind, b.status, b.note[:500], u["name"]))
+    if b.photo_id is not None and not c.execute("SELECT 1 FROM photos WHERE id=? AND plot_id=?", (b.photo_id, pid)).fetchone():
+        c.close(); raise HTTPException(400, "That photo does not belong to this plot")
+    c.execute("INSERT INTO checks(plot_id,kind,status,note,by_name,at,photo_id) VALUES(?,?,?,?,?,datetime('now'),?)",
+              (pid, kind, b.status, b.note[:500], u["name"], b.photo_id))
     c.commit(); c.close()
     audit(u["email"], u["role"], "check", f"{pid} {kind} {b.status}")
     return {"ok": True}
+
+
+MAX_PHOTO = 3 * 1024 * 1024
+
+
+def photo_ext(head: bytes) -> str | None:
+    """Trust the file's first bytes, not the name or the declared type."""
+    if head.startswith(b"\xff\xd8\xff"):
+        return "jpg"
+    if head.startswith(b"\x89PNG\r\n\x1a\n"):
+        return "png"
+    if head[:4] == b"RIFF" and head[8:12] == b"WEBP":
+        return "webp"
+    return None
+
+
+@app.post("/api/plots/{pid}/photo")
+async def upload_photo(pid: str, file: UploadFile = File(...), u=Depends(current_user)):
+    if u["role"] not in ("farmer", "taluka_officer"):
+        raise HTTPException(403, "Only farmers and taluka officers add photos")
+    if pid not in PLOTS or not can_see_plot(u, pid):
+        raise HTTPException(404, "No such plot")
+    data = await file.read(MAX_PHOTO + 1)
+    if len(data) > MAX_PHOTO:
+        raise HTTPException(413, "Photo is larger than 3 MB")
+    ext = photo_ext(data[:16])
+    if not ext:
+        raise HTTPException(400, "Photo must be a JPEG, PNG or WebP image")
+    folder = DATA / "uploads" / pid
+    folder.mkdir(parents=True, exist_ok=True)
+    path = folder / f"{uuid.uuid4().hex}.{ext}"
+    path.write_bytes(data)
+    c = db()
+    cur = c.execute("INSERT INTO photos(plot_id,path,by_name,at) VALUES(?,?,?,datetime('now'))", (pid, str(path), u["name"]))
+    c.commit(); pid_new = cur.lastrowid; c.close()
+    audit(u["email"], u["role"], "photo", f"{pid} {len(data)} bytes")
+    return {"photo_id": pid_new}
+
+
+@app.get("/api/photos/{photo_id}")
+def get_photo(photo_id: int, u=Depends(current_user)):
+    c = db(); r = c.execute("SELECT * FROM photos WHERE id=?", (photo_id,)).fetchone(); c.close()
+    if not r or not can_see_plot(u, r["plot_id"]):
+        raise HTTPException(404, "No such photo")
+    return FileResponse(r["path"])
 
 
 class Report(BaseModel):
