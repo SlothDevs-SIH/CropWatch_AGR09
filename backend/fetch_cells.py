@@ -14,8 +14,7 @@ from rasterio.enums import Resampling
 from rasterio.warp import transform_bounds
 from rasterio.windows import from_bounds
 
-sys.path.insert(0, r"C:\Soham\college work\fusion_hack\GEOAI_04_SLOTHDEV")
-from engine import s2  # noqa: E402
+import s2lite as s2  # noqa: E402
 
 from config import TALUKAS, YEARS, MONTHS, box_for  # noqa: E402
 
