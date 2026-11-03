@@ -50,11 +50,11 @@ def read_scene(args):
         return None
 
 
-def scenes_for(lat, lon, bbox):
+def scenes_for(lat, lon, bbox, years):
     seen, out = set(), []
     corners = [(bbox[1], bbox[0]), (bbox[1], bbox[2]), (bbox[3], bbox[0]), (bbox[3], bbox[2]), (lat, lon)]
     tiles = list(dict.fromkeys(s2.mgrs_tile(a, b) for a, b in corners))
-    months = [(y, m) for y in YEARS for m in MONTHS]
+    months = [(y, m) for y in years for m in MONTHS]
     for t in tiles:
         for sc in s2.search(t, months, max_cloud=100.0, bbox_ll=bbox):
             if sc.date not in seen:
@@ -64,12 +64,18 @@ def scenes_for(lat, lon, bbox):
 
 
 def main():
+    import argparse
+    ap = argparse.ArgumentParser(description="Fetch Sentinel-2 greenness per 200 m cell for the Jalna sample boxes.")
+    ap.add_argument("talukas", nargs="*", help="taluka names (default: all)")
+    ap.add_argument("--years", nargs="+", type=int, default=YEARS, help="seasons to read (default: 2023 to 2026)")
+    ap.add_argument("--tag", default="", help="suffix for the output file, e.g. _hist for past seasons")
+    a = ap.parse_args()
     RAW.mkdir(parents=True, exist_ok=True)
     report = {}
-    for name in (sys.argv[1:] or list(TALUKAS)):
+    for name in (a.talukas or list(TALUKAS)):
         lat, lon = TALUKAS[name]["lat"], TALUKAS[name]["lon"]
         bbox = box_for(lat, lon)
-        tiles, scenes = scenes_for(lat, lon, bbox)
+        tiles, scenes = scenes_for(lat, lon, bbox, a.years)
         print(f"{name}: tiles {tiles}, {len(scenes)} scenes", flush=True)
         if not scenes:
             report[name] = "no scenes cover the box"
@@ -77,12 +83,12 @@ def main():
         with ThreadPoolExecutor(max_workers=8) as pool:
             res = [r for r in pool.map(read_scene, [(bbox, sc) for sc in scenes]) if r]
         res.sort(key=lambda r: r[0])
-        np.savez_compressed(RAW / f"{name}.npz", dates=np.array([r[0] for r in res]),
+        np.savez_compressed(RAW / f"{name}{a.tag}.npz", dates=np.array([r[0] for r in res]),
                             ndvi=np.stack([r[1] for r in res]), clear=np.array([r[2] for r in res]),
                             bbox=np.array(bbox))
         report[name] = f"{len(res)} scenes read"
-        print(f"  saved {name}: {report[name]}", flush=True)
-    (RAW / "fetch_report.json").write_text(json.dumps(report, indent=1))
+        print(f"  saved {name}{a.tag}: {report[name]}", flush=True)
+    (RAW / f"fetch_report{a.tag}.json").write_text(json.dumps(report, indent=1))
 
 
 if __name__ == "__main__":
