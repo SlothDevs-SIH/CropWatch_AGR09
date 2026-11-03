@@ -600,7 +600,8 @@ def reported(u=Depends(current_user)):
     if u["role"] not in ("district_officer", "admin", "taluka_officer"):
         raise HTTPException(403, "Officers only")
     _, reports = all_state()
-    rows = [r for r in reports.values() if u["role"] != "taluka_officer" or r["taluka"] == u["taluka"]]
+    rows = [dict(r, area=PLOTS.get(r["plot_id"], {"properties": {}})["properties"].get("area")) for r in reports.values()
+            if u["role"] != "taluka_officer" or r["taluka"] == u["taluka"]]
     return rows
 
 
