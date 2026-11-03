@@ -7,7 +7,6 @@ from pathlib import Path
 
 import numpy as np
 
-from config import GRID
 
 ROOT = Path(__file__).resolve().parent.parent
 RAW, RAIN, LAND = ROOT / "data" / "raw", ROOT / "data" / "rain", ROOT / "data" / "landcover"
@@ -47,8 +46,9 @@ def load_raw(name: str):
 def binned_by_year(dates, ndvi):
     """-> {year: array[NBINS, GRID, GRID]} of mean greenness per 10-day bin (NaN where no clear reading)."""
     out = {}
+    R, C = ndvi.shape[1:]                                           # any grid size: a 4 km box or a whole taluka
     for y in sorted({int(d[:4]) for d in dates}):
-        arr = np.full((NBINS, GRID, GRID), np.nan, dtype=np.float32)
+        arr = np.full((NBINS, R, C), np.nan, dtype=np.float32)
         for b in range(NBINS):
             idx = [i for i, d in enumerate(dates) if int(d[:4]) == y and bin_of(d) == b]
             if idx:
