@@ -64,11 +64,11 @@ The biggest single reason backend is not higher is still **scale**: 15% of the w
 There are **no automated tests for the website**; the checks so far were done by hand in a browser.
 
 ## What the numbers now say (see `validation/BACKTEST.md`; Mantha corrected on 4 November)
-- **Separates 2026 from ordinary seasons in 5 of 8 sample areas.** Across all areas: 30% of visible farmland flagged in 2026, 8% in ordinary seasons (46 taluka-seasons).
+- **Covering whole talukas, 2026 stands far above every ordinary season in 5 of the 6 talukas checked so far.** At the order date: Mantha 55% flagged (ordinary seasons 4% to 11%), Jalna 49% (3% to 7%), Partur 47% (2% to 9%), Ghansawangi 44% (2% to 7%), Ambad 33% (1% to 6%). Jafrabad is marginal: 11% against a past maximum of 10%. Badnapur and Bhokardan are not covered whole yet. (The eight 4 km boxes together gave 30% against 8%, but boxes proved unreliable; see below.)
 - **Beats the simple rule clearly.** At the same false-alarm rate the simple "less green than last reading" rule flags 2026 *less* (5%) than ordinary seasons. It cannot see this drought.
-- **Not an early warning of weeks.** The signal appears around the 25 September order: +16 and +6 days in two areas, -4, -4 and -14 in others, none in three.
-- **The signal holds across a whole taluka, but the 4 km box overstated it.** For Partur as a whole (7,675 farmland cells), 47% was flagged at the order date against 2% to 9% in every ordinary season. The box had said 69%. Detection was 4 days after the order for the whole taluka, against 16 days before it for the box.
-- **The box overstated Ambad as well.** Whole Ambad is 52 points over the usual share for the date; its box said 69. So the district ranking compares every taluka on its box (like for like) and shows the whole-taluka result beside it, and will switch to whole talukas only when all eight are ready.
+- **No early warning.** In the whole-taluka checks the signal first stood out **4 to 14 days after** the 25 September order (none for Jafrabad). The earlier box-based "+16 days" for Partur was an artefact. What the system can do is show *where* the stress is, plot by plot, at about the time of the order.
+- **The 4 km boxes are unreliable in both directions.** Partur's box said 68% and the whole taluka is 47% (too high). Ghansawangi's box said 5% and the whole taluka is 44% (too low: the box simply sat on an unaffected patch).
+- **So the district ranking compares every taluka on its box (like for like) for now, with the whole-taluka result beside it, and switches to whole talukas by itself when all eight are ready.** Whole-taluka ranking (so far): Mantha, Jalna, Ambad, Ghansawangi, Partur, then Jafrabad; Badnapur and Bhokardan pending.
 - **A sample-box error was found and fixed.** The Mantha box had been placed in the wrong district (Lonar). It was corrected and everything rebuilt; Mantha is now the strongest signal of the eight.
 - **2026 rainfall was about 52% of the 2018 to 2025 average** at Jalna and Partur, consistent with a reported deficit near 46%.
 
@@ -116,7 +116,7 @@ There are **no automated tests for the website**; the checks so far were done by
 1. **Nothing is checked on the ground yet.** The method and tools are ready, the data is not. The evidence is comparison with past seasons, a rainfall cross-check and a better-than-simple-rule result.
 2. **"Early warning" is not supported.** Say "locates and confirms stress at about the order date, plot by plot".
 3. **Eight 4 km boxes, not eight talukas.** Thresholds were tuned on the same places that are then tested (different seasons).
-4. **Three of eight areas show no signal** (Ghansawangi, Jafrabad, Bhokardan). We should say so, not hide them.
+4. **The box results can mislead.** "Three of eight areas show no signal" was partly an artefact: Ghansawangi shows a strong signal across the whole taluka. Only Jafrabad is marginal so far.
 5. **The service-centre idea is unchecked** for fees and rules. The evidence pack is the safer form.
 
 ## Choices for what to do next

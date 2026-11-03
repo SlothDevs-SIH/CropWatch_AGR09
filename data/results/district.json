@@ -51,6 +51,16 @@
    "rain_mm": 437.6,
    "rain_mean_prev_mm": 838.0,
    "rain_pct_of_mean": 52,
+   "whole_taluka": {
+    "taluka": "JalnaWhole",
+    "stress_share": 0.631,
+    "share_at_compare_date": 0.614,
+    "excess_over_usual": 0.567,
+    "usual_share_median": 0.047,
+    "usual_share_max": 0.179,
+    "farmland_cells": 10642,
+    "cannot_see_share": 0.0
+   },
    "rank": 1,
    "low_confidence": false
   },
@@ -100,6 +110,16 @@
    "rain_mm": 437.1,
    "rain_mean_prev_mm": 836.9,
    "rain_pct_of_mean": 52,
+   "whole_taluka": {
+    "taluka": "ManthaWhole",
+    "stress_share": 0.636,
+    "share_at_compare_date": 0.635,
+    "excess_over_usual": 0.582,
+    "usual_share_median": 0.053,
+    "usual_share_max": 0.138,
+    "farmland_cells": 7639,
+    "cannot_see_share": 0.001
+   },
    "rank": 2,
    "low_confidence": false
   },
@@ -365,6 +385,16 @@
    "rain_mm": 509.3,
    "rain_mean_prev_mm": 895.8,
    "rain_pct_of_mean": 57,
+   "whole_taluka": {
+    "taluka": "JafrabadWhole",
+    "stress_share": 0.306,
+    "share_at_compare_date": 0.197,
+    "excess_over_usual": 0.149,
+    "usual_share_median": 0.048,
+    "usual_share_max": 0.16,
+    "farmland_cells": 7478,
+    "cannot_see_share": 0.001
+   },
    "rank": 7,
    "low_confidence": false
   },
@@ -414,6 +444,16 @@
    "rain_mm": 437.6,
    "rain_mean_prev_mm": 838.0,
    "rain_pct_of_mean": 52,
+   "whole_taluka": {
+    "taluka": "GhansawangiWhole",
+    "stress_share": 0.575,
+    "share_at_compare_date": 0.541,
+    "excess_over_usual": 0.498,
+    "usual_share_median": 0.043,
+    "usual_share_max": 0.161,
+    "farmland_cells": 11841,
+    "cannot_see_share": 0.005
+   },
    "rank": 8,
    "low_confidence": false
   }
