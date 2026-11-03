@@ -78,3 +78,17 @@ It was started from a copy kept in a temporary folder. If it stops, ask Claude t
 3. Open `http://127.0.0.1:8000/index.html` in a browser and press "Open console".
 
 Only the website part runs this way. T.R.A.C.E.'s upload-and-analyse engine needs extra software that is not installed on this computer.
+
+## Rebuild the data and run the checks (from `backend/`)
+
+```bash
+.venv/Scripts/python.exe fetch_cells.py                                   # 2023 to 2026
+.venv/Scripts/python.exe fetch_cells.py --years 2019 2020 2021 2022 --tag _hist
+.venv/Scripts/python.exe fetch_rain.py
+.venv/Scripts/python.exe fetch_landcover.py
+.venv/Scripts/python.exe backtest.py --tune                               # chooses settings from seasons other than 2026
+.venv/Scripts/python.exe build_results.py
+.venv/Scripts/python.exe -m pytest -q                                      # 8 tests on access rules and workflows
+```
+
+Setup: Python 3.12, `pip install -r backend/requirements.txt`. Data sources, limits and what each folder holds are in `docs/DATA.md`. Backtest results and their limits are in `validation/BACKTEST.md`. The latest status is in `docs/PROGRESS.md`.
