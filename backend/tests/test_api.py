@@ -146,3 +146,51 @@ def test_accuracy_picks_up_field_results(client, tmp_path, monkeypatch):
     assert not any("field" in x.lower() for x in d["not_measured"])
     monkeypatch.undo()
     assert "field_check" not in client.get("/api/accuracy").json()          # no real field file exists, so none is shown
+
+
+def test_admin_creates_users_and_password_policy(client):
+    admin = auth(client, "admin@cropwatch.demo")
+    new = {"email": "New.Farmer@Test.example", "name": "Test Farmer", "role": "farmer", "taluka": "Partur", "password": "Strong-pass-2026"}
+    assert client.post("/api/admin/users", headers=auth(client, "district@jalna.demo"), json=new).status_code == 403          # only admins
+    assert client.post("/api/admin/users", headers=admin, json={**new, "password": "short1"}).status_code == 400             # too short
+    assert client.post("/api/admin/users", headers=admin, json={**new, "password": "onlyletterspassword"}).status_code == 400  # no digit
+    assert client.post("/api/admin/users", headers=admin, json={**new, "password": "demo1234"}).status_code == 400             # demo password refused
+    assert client.post("/api/admin/users", headers=admin, json={**new, "role": "king"}).status_code == 400
+    assert client.post("/api/admin/users", headers=admin, json={**new, "taluka": "Nowhere"}).status_code == 400
+    assert client.post("/api/admin/users", headers=admin, json=new).status_code == 200
+    assert client.post("/api/admin/users", headers=admin, json=new).status_code == 409                                         # same email twice
+    assert login(client, "new.farmer@test.example", "Strong-pass-2026").status_code == 200                                    # email is case-insensitive
+
+
+def test_change_password(client):
+    email = "new.farmer@test.example"
+    h = {"Authorization": f"Bearer {login(client, email, 'Strong-pass-2026').json()['token']}"}
+    assert client.post("/api/auth/change-password", headers=h, json={"old_password": "wrong", "new_password": "Another-pass-77"}).status_code == 401
+    assert client.post("/api/auth/change-password", headers=h, json={"old_password": "Strong-pass-2026", "new_password": "weak"}).status_code == 400
+    assert client.post("/api/auth/change-password", headers=h, json={"old_password": "Strong-pass-2026", "new_password": "Another-pass-77"}).status_code == 200
+    assert login(client, email, "Strong-pass-2026").status_code == 401
+    assert login(client, email, "Another-pass-77").status_code == 200
+
+
+def test_security_headers(client):
+    r = client.get("/api/health")
+    assert r.headers["x-content-type-options"] == "nosniff" and r.headers["x-frame-options"] == "DENY"
+
+
+def test_production_mode_in_its_own_process(tmp_path):
+    """Run in a separate process so the production settings cannot leak into the other tests."""
+    import subprocess
+    code = ("import json,sys\nfrom fastapi.testclient import TestClient\nimport server\n"
+            "with TestClient(server.app) as c:\n"
+            " demo=c.get('/api/demo-accounts').json()\n"
+            " d=c.post('/api/auth/login',json={'email':'district@jalna.demo','password':'demo1234'}).status_code\n"
+            " a=c.post('/api/auth/login',json={'email':'boss@example.org','password':'Prod-strong-pass-1'}).status_code\n"
+            "print(json.dumps([demo,d,a]))")
+    base = {**os.environ, "CW_DATA": str(tmp_path), "CW_ENV": "production"}
+    here = str(Path(__file__).resolve().parent.parent)
+    ok = subprocess.run([sys.executable, "-c", code.replace("\\n", "\n")], cwd=here, capture_output=True, text=True,
+                        env={**base, "CW_SECRET": "x" * 40, "CW_ADMIN_EMAIL": "boss@example.org", "CW_ADMIN_PASSWORD": "Prod-strong-pass-1"})
+    assert ok.returncode == 0, ok.stderr[-800:]
+    assert json.loads(ok.stdout.strip().splitlines()[-1]) == [[], 401, 200]            # no demo accounts, demo login refused, real admin works
+    no_secret = subprocess.run([sys.executable, "-c", code.replace("\\n", "\n")], cwd=here, capture_output=True, text=True, env={**base, "CW_SECRET": ""})
+    assert no_secret.returncode != 0 and "CW_SECRET" in no_secret.stderr                # refuses to start without a real secret
