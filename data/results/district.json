@@ -149,6 +149,16 @@
    "rain_mm": 437.1,
    "rain_mean_prev_mm": 836.9,
    "rain_pct_of_mean": 52,
+   "whole_taluka": {
+    "taluka": "PartWhole",
+    "stress_share": 0.56,
+    "share_at_compare_date": 0.543,
+    "excess_over_usual": 0.486,
+    "usual_share_median": 0.057,
+    "usual_share_max": 0.173,
+    "farmland_cells": 7675,
+    "cannot_see_share": 0.012
+   },
    "rank": 3,
    "low_confidence": false
   },
@@ -198,6 +208,16 @@
    "rain_mm": 331.0,
    "rain_mean_prev_mm": 760.4,
    "rain_pct_of_mean": 44,
+   "whole_taluka": {
+    "taluka": "AmbadWhole",
+    "stress_share": 0.575,
+    "share_at_compare_date": 0.537,
+    "excess_over_usual": 0.524,
+    "usual_share_median": 0.013,
+    "usual_share_max": 0.128,
+    "farmland_cells": 11724,
+    "cannot_see_share": 0.004
+   },
    "rank": 4,
    "low_confidence": false
   },
@@ -399,6 +419,7 @@
   }
  ],
  "method": "v2",
+ "ranking_basis": "sample_box",
  "thresholds": {
   "watch": -0.18,
   "urgent": -0.36,
@@ -406,20 +427,64 @@
  },
  "thresholds_how": "tuned on seasons other than 2026",
  "crop_age_aligned": true,
- "whole_taluka_areas": {
-  "Partur": {
-   "taluka": "PartWhole",
-   "farmland_cells": 7675,
-   "visible_cells": 7586,
-   "stress_share": 0.56,
-   "cannot_see_share": 0.012,
-   "share_at_compare_date": 0.543,
-   "usual_share_median": 0.057,
-   "usual_share_max": 0.173,
-   "excess_over_usual": 0.486,
-   "cell_m": 300
+ "sample_boxes": [
+  {
+   "taluka": "Partur",
+   "stress_share": 0.785,
+   "share_at_compare_date": 0.838,
+   "excess_over_usual": 0.732,
+   "farmland_cells": 260
+  },
+  {
+   "taluka": "Jalna",
+   "stress_share": 0.909,
+   "share_at_compare_date": 0.854,
+   "excess_over_usual": 0.803,
+   "farmland_cells": 396
+  },
+  {
+   "taluka": "Badnapur",
+   "stress_share": 0.682,
+   "share_at_compare_date": 0.673,
+   "excess_over_usual": 0.592,
+   "farmland_cells": 346
+  },
+  {
+   "taluka": "Ambad",
+   "stress_share": 0.718,
+   "share_at_compare_date": 0.708,
+   "excess_over_usual": 0.689,
+   "farmland_cells": 209
+  },
+  {
+   "taluka": "Ghansawangi",
+   "stress_share": 0.178,
+   "share_at_compare_date": 0.085,
+   "excess_over_usual": -0.021,
+   "farmland_cells": 377
+  },
+  {
+   "taluka": "Mantha",
+   "stress_share": 0.806,
+   "share_at_compare_date": 0.827,
+   "excess_over_usual": 0.753,
+   "farmland_cells": 392
+  },
+  {
+   "taluka": "Jafrabad",
+   "stress_share": 0.247,
+   "share_at_compare_date": 0.143,
+   "excess_over_usual": 0.036,
+   "farmland_cells": 300
+  },
+  {
+   "taluka": "Bhokardan",
+   "stress_share": 0.377,
+   "share_at_compare_date": 0.313,
+   "excess_over_usual": 0.151,
+   "farmland_cells": 358
   }
- },
+ ],
  "ranked_by": "excess over the usual share of flagged farmland for this date (median of other seasons)",
- "note": "Each taluka in the ranking is represented by one 4 km sample box. Farmland is from ESA WorldCover. Percentages are not accuracy figures."
+ "note": "Every taluka is ranked on one 4 km sample box so the comparison is like for like; boxes can overstate a taluka (Partur's did by about 20 points). Whole-taluka results are shown where we have them. Farmland is from ESA WorldCover. Percentages are not accuracy figures."
 }
