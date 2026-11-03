@@ -30,7 +30,7 @@ def bin_of(d: str) -> int:
 
 def load_raw(name: str):
     """Merge the main file and the past-seasons file (if present) into one time-ordered stack."""
-    parts = [RAW / f"{name}.npz", RAW / f"{name}_hist.npz"]
+    parts = [RAW / f"{name}.npz"] + sorted(RAW.glob(f"{name}_*.npz"))      # the main file plus any past-seasons files
     dates, stacks, bbox = [], [], None
     for p in parts:
         if p.exists():
