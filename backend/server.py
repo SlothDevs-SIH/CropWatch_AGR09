@@ -14,7 +14,7 @@ import sqlite3
 import time
 from pathlib import Path
 
-from fastapi import Depends, FastAPI, Header, HTTPException
+from fastapi import Depends, FastAPI, Header, HTTPException, Request
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
@@ -153,11 +153,26 @@ def public(u):
     return {"id": u["id"], "email": u["email"], "name": u["name"], "role": u["role"], "taluka": u["taluka"]}
 
 
+FAILS: dict[str, list[float]] = {}     # sign-in failures per email and address, newest last
+MAX_FAILS, WINDOW = 5, 300             # five wrong passwords in five minutes locks that sign-in for the rest of the window
+
+
 @app.post("/api/auth/login")
-def login(b: Login):
-    c = db(); u = c.execute("SELECT * FROM users WHERE email=?", (b.email.strip().lower(),)).fetchone(); c.close()
+def login(b: Login, request: Request):
+    email = b.email.strip().lower()
+    key = f"{email}|{request.client.host if request.client else '?'}"
+    now = time.time()
+    recent = [t for t in FAILS.get(key, []) if now - t < WINDOW]
+    if len(recent) >= MAX_FAILS:
+        audit(email, "?", "login_locked", key)
+        raise HTTPException(429, "Too many wrong attempts. Wait a few minutes and try again.")
+    c = db(); u = c.execute("SELECT * FROM users WHERE email=?", (email,)).fetchone(); c.close()
     if not u or not check_pw(b.password, u["pw"]):
+        FAILS[key] = recent + [now]
+        audit(email, "?", "login_failed", "")
         raise HTTPException(401, "Wrong email or password")
+    FAILS.pop(key, None)
+    audit(email, u["role"], "login", "")
     return {"token": make_token(u["id"]), "user": public(dict(u))}
 
 
