@@ -1,8 +1,9 @@
 """Turn per-cell greenness into levels, reasons and a district ranking (method v2).
 
-v2 changes: baseline is every season 2019 to 2025 that was fetched (not just three),
-farmland comes from ESA WorldCover (not a greenness shortcut), rainfall context is added,
-and thresholds come from validation/backtest.json when the backtest has been run with --tune.
+v2: baseline is every season before 2026 that was fetched; farmland comes from ESA WorldCover; rainfall context is added;
+thresholds come from validation/backtest.json when the backtest has been run with --tune.
+Handles the 4 km sample boxes and whole-taluka areas (config.AREAS) with the same code. Whole-taluka areas are clipped to the real
+taluka outline and are kept out of the district ranking (the ranking compares like with like: one sample box per taluka).
 Output: ../data/results/
 """
 import json
@@ -13,7 +14,7 @@ import numpy as np
 from analysis import (DEFAULT_TH, NBINS, aligned_normal, bin_of, binned_by_year, crop_mask, doy, flagged_share, level_series,
                       load_raw, normal_from, rain_total, sow_bins)
 from backtest import shares_for
-from config import DISTRICT, GRID, TALUKAS
+from config import AREAS, DISTRICT, TALUKAS, area_spec, sample_spec
 
 ROOT = Path(__file__).resolve().parent.parent
 OUT = ROOT / "data" / "results"
@@ -42,16 +43,34 @@ def reason(level, last, valid, dev, th):
             f"and was behind normal in {below} of the last {len(recent)} clear readings.")
 
 
-def cell_polygon(bbox, r, c):
+def cell_polygon(bbox, r, c, R, C):
     w, s, e, n = bbox
-    dx, dy = (e - w) / GRID, (n - s) / GRID
+    dx, dy = (e - w) / C, (n - s) / R
     x0, y1 = w + c * dx, n - r * dy
-    return [[x0, y1], [x0 + dx, y1], [x0 + dx, y1 - dy], [x0, y1 - dy], [x0, y1]]
+    return [[round(x0, 6), round(y1, 6)], [round(x0 + dx, 6), round(y1, 6)], [round(x0 + dx, 6), round(y1 - dy, 6)],
+            [round(x0, 6), round(y1 - dy, 6)], [round(x0, 6), round(y1, 6)]]
 
 
-def build_taluka(name, th, align):
+def inside_mask(spec, R, C):
+    """Cells whose centre lies inside the taluka outline (all cells for a plain sample box)."""
+    if spec["polygon"] is None:
+        return np.ones((R, C), bool)
+    from shapely.prepared import prep
+    from shapely.geometry import Point
+    poly = prep(spec["polygon"])
+    w, s, e, n = spec["bbox"]
+    dx, dy = (e - w) / C, (n - s) / R
+    m = np.zeros((R, C), bool)
+    for r in range(R):
+        for c in range(C):
+            m[r, c] = poly.contains(Point(w + (c + 0.5) * dx, n - (r + 0.5) * dy))
+    return m
+
+
+def build_one(name, spec, th, align):
     dates, ndvi, bbox = load_raw(name)
     by = binned_by_year(dates, ndvi)
+    R, C = ndvi.shape[1:]
     base_years = [y for y in sorted(by) if y < TEST_YEAR]
     if align:
         sow = sow_bins(by)
@@ -63,17 +82,22 @@ def build_taluka(name, th, align):
     last_date = max(d for d in dates if d.startswith(str(TEST_YEAR)))
     last_bin = bin_of(last_date)
     lvl = level_series(dev, last_bin, th)
+    inside = inside_mask(spec, R, C)
     mask = crop_mask(name)
     if mask is None:
         with np.errstate(all="ignore"):
             mask = np.nan_to_num(np.nanmax(normal, axis=0), nan=0) >= 0.35          # old shortcut, only if WorldCover is missing
+    mask = mask & inside
     has_base = np.isfinite(normal).any(0)
+    width = 3 if max(R, C) > 99 else 2
     feats, counts = [], {"normal": 0, "watch": 0, "urgent": 0, "cannot_see": 0, "not_farmland": 0}
-    for r in range(GRID):
-        for c in range(GRID):
-            pid = f"{name[:3].upper()}-r{r:02d}c{c:02d}"
+    for r in range(R):
+        for c in range(C):
+            if not inside[r, c]:
+                continue                                                            # outside the taluka: not drawn, not counted
+            pid = f"{spec['prefix']}-r{r:0{width}d}c{c:0{width}d}"
             farm = bool(mask[r, c] and has_base[r, c])
-            props = {"id": pid, "taluka": name, "row": r, "col": c, "farmland": farm}
+            props = {"id": pid, "taluka": spec["taluka"], "area": name, "kind": spec["kind"], "row": r, "col": c, "farmland": farm}
             if not farm:
                 props["level"] = "not_farmland"
                 counts["not_farmland"] += 1
@@ -90,19 +114,21 @@ def build_taluka(name, th, align):
                              series_normal=[None if not np.isfinite(v) else round(float(v), 3) for v in normal[:, r, c]])
                 counts[level] += 1
             feats.append({"type": "Feature", "properties": props,
-                          "geometry": {"type": "Polygon", "coordinates": [cell_polygon(bbox, r, c)]}})
-    share, cs, seen = flagged_share(lvl, mask & has_base)
+                          "geometry": {"type": "Polygon", "coordinates": [cell_polygon(bbox, r, c, R, C)]}})
+    farm_mask = mask & has_base
+    share, cs, seen = flagged_share(lvl, farm_mask)
     farm_n = counts["normal"] + counts["watch"] + counts["urgent"] + counts["cannot_see"]
     upto = doy(last_date)
-    rain_now = rain_total(name, TEST_YEAR, upto)
-    past = [r for r in (rain_total(name, y, upto) for y in range(2018, TEST_YEAR)) if r is not None]
-    usual = shares_for(by, mask & has_base, th, align)                 # every season against all the others, same date
-    b_cmp = min(last_bin, max(usual[TEST_YEAR]))                        # compare all seasons at the same date
+    rain_now = rain_total(spec["taluka"], TEST_YEAR, upto)
+    past = [x for x in (rain_total(spec["taluka"], y, upto) for y in range(2018, TEST_YEAR)) if x is not None]
+    usual = shares_for(by, farm_mask, th, align)                                    # every season against all the others, same date
+    b_cmp = min(last_bin, max(usual[TEST_YEAR]))                                    # compare all seasons at the same date
     share_cmp = usual[TEST_YEAR][b_cmp][0]
     ord_shares = [usual[y][b_cmp][0] for y in usual if y != TEST_YEAR and usual[y][b_cmp][0] is not None]
     usual_med = round(float(np.median(ord_shares)), 3) if ord_shares else None
     usual_max = round(max(ord_shares), 3) if ord_shares else None
-    summary = {"taluka": name, "as_of": last_date, "farmland_cells": farm_n, "visible_cells": seen, **counts,
+    summary = {"taluka": name, "parent_taluka": spec["taluka"], "kind": spec["kind"], "cell_m": spec["cell_m"], "rows": R, "cols": C,
+               "as_of": last_date, "farmland_cells": farm_n, "visible_cells": seen, **counts,
                "stress_share": None if share is None else round(share, 3),
                "urgent_share": round(counts["urgent"] / seen, 3) if seen else None,
                "cannot_see_share": None if cs is None else round(cs, 3),
@@ -123,24 +149,27 @@ def main():
     OUT.mkdir(parents=True, exist_ok=True)
     th, how, align = thresholds()
     print("thresholds:", th, "-", how, "| crop-age aligned:", align)
-    sums = []
-    for name in TALUKAS:
+    boxes, areas = [], []
+    targets = [(n, sample_spec(n)) for n in TALUKAS] + [(k, area_spec(k)) for k in AREAS]
+    for name, spec in targets:
         try:
-            s = build_taluka(name, th, align)
+            s = build_one(name, spec, th, align)
         except FileNotFoundError:
             print(name, "no data (skipped)")
             continue
-        sums.append(s)
-        print(name, {k: s[k] for k in ("farmland_cells", "visible_cells", "stress_share", "urgent_share", "cannot_see_share", "rain_pct_of_mean")})
-    ranked = sorted(sums, key=lambda s: -(s["excess_over_usual"] if s["excess_over_usual"] is not None else (s["stress_share"] or 0)))   # most unusual for the date first
+        (boxes if spec["kind"] == "sample_box" else areas).append(s)
+        print(name, {k: s[k] for k in ("farmland_cells", "visible_cells", "stress_share", "cannot_see_share", "excess_over_usual", "rain_pct_of_mean")})
+    ranked = sorted(boxes, key=lambda s: -(s["excess_over_usual"] if s["excess_over_usual"] is not None else (s["stress_share"] or 0)))   # most unusual for the date first
     for i, s in enumerate(ranked, 1):
         s["rank"] = i
         csh = s["cannot_see_share"]
         s["low_confidence"] = csh is None or csh > 0.5 or s["visible_cells"] < 30
     (OUT / "district.json").write_text(json.dumps({
         "district": DISTRICT, "talukas": ranked, "method": "v2", "thresholds": th, "thresholds_how": how, "crop_age_aligned": align,
+        "whole_taluka_areas": {a["parent_taluka"]: {k: a[k] for k in ("taluka", "farmland_cells", "visible_cells", "stress_share", "cannot_see_share",
+                                                                       "share_at_compare_date", "usual_share_median", "usual_share_max", "excess_over_usual", "cell_m")} for a in areas},
         "ranked_by": "excess over the usual share of flagged farmland for this date (median of other seasons)",
-        "note": "Each taluka is represented by one 4 km sample box. Farmland is from ESA WorldCover. Percentages are not accuracy figures."}, indent=1))
+        "note": "Each taluka in the ranking is represented by one 4 km sample box. Farmland is from ESA WorldCover. Percentages are not accuracy figures."}, indent=1))
 
 
 if __name__ == "__main__":
