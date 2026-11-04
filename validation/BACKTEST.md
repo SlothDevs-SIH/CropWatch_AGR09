@@ -12,9 +12,11 @@ For six talukas we now have data for the **whole taluka** (about 7,500 to 11,800
 | Ghansawangi | 44% | 2% to 7% | 5% | 4 days after |
 | Ambad | 33% | 1% to 6% | 46% | 14 days after |
 | Jafrabad | 11% | 3% to 10% | 8% | not detected |
+| Badnapur | 28% | 3% to 14% | n/a | 14 days after |
+| Bhokardan | 24% | 3% to 20% | n/a | not detected |
 
 **What this changes**
-- **Where:** 2026 is above every ordinary season in **5 of the 6** whole talukas. Jafrabad is marginal. Badnapur and Bhokardan are not covered whole yet.
+- **Where:** 2026 is above every ordinary season in **all 8** whole talukas. Jafrabad is marginal and Bhokardan has the smallest margin (Badnapur and Bhokardan were added on 4 November).
 - **The boxes were unreliable in both directions.** They overstated Partur, Jalna, Mantha and Ambad, and **understated Ghansawangi badly** (5% against 44%). The earlier statement that three areas "show no signal" was partly an artefact of where the boxes sat.
 - **When:** there is **no lead time**. The signal first stood out 4 to 14 days *after* the order date. The earlier box-based "+16 days" for Partur was an artefact. We can show where the stress is, plot by plot, at about the time of the order. We cannot claim early warning.
 

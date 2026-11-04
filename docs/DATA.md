@@ -25,7 +25,7 @@ Everything in `data/` and how to rebuild it. All sources are free and open. Larg
 The first Mantha sample box used coordinates I had guessed, and it lay in Lonar, outside Jalna district. Every earlier Mantha number was therefore wrong. It was found by checking all boxes against open taluka outlines, moved to farmland inside the real Mantha taluka, and refetched. All eight boxes now lie fully inside their own taluka (`data/coverage.json`). The corrected Mantha is the strongest signal of the eight.
 
 ## Known limits
-- Seven talukas are one 4 km box each (about 112 km²). Partur is covered whole (762 km²). Together that is about 874 km², **11% of the district's 7,688 km²**.
+- All eight talukas are now covered whole (300 m cells, 60 m pixels, clipped to the real outlines; about 76,500 farmland cells). The original 4 km boxes (about 112 km² each) are kept for the record and proved unreliable on their own.
 - Rainfall is a coarse grid; two boxes can share a cell.
 - WorldCover is 2021, so land use may have changed. It does not say which crop is grown, only "cropland".
 - The Jalna box was moved from the town (18% cropland) to rural land (96%).
