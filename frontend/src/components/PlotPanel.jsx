@@ -42,6 +42,13 @@ export default function PlotPanel({ plot, user, onChanged, onPrev, onNext, onClo
       </div>
       <p className="mt-3 text-base">{plot.reason}</p>
 
+      {plot.centre && !farmer && (
+        <a className="btn btn-primary w-full mt-3 text-center block" style={{ padding: "14px", fontSize: "1.1rem" }} target="_blank" rel="noopener noreferrer"
+          href={`https://www.google.com/maps/dir/?api=1&destination=${plot.centre[1]},${plot.centre[0]}&travelmode=driving`}>
+          {t("openInMaps")}
+        </a>
+      )}
+
       {plot.centre && <PictureCompare plot={plot} simple />}
 
       <details className="card p-3 mt-3">
