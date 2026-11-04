@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Crop Watch: Back end</title>
+<style>
+:root{--bg:#11160e;--panel:#181f14;--line:#33402a;--leaf:#a9c75a;--wheat:#e9d8a6;--ochre:#e5a823;--rust:#d14a30;--sage:#8f988a;--text:#f1ebdd;--muted:#a3ab94}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font:16px/1.6 "Segoe UI",system-ui,sans-serif}
+main{max-width:980px;margin:0 auto;padding:32px 16px 80px}
+h1,h2,h3{font-family:Georgia,serif;font-weight:600;line-height:1.2}
+h1{font-size:2.2rem;margin:.2em 0}h2{font-size:1.5rem;margin:2.2em 0 .5em;color:var(--wheat)}h3{font-size:1.1rem;margin:1.4em 0 .3em;color:var(--leaf)}
+p,li{max-width:75ch}a{color:var(--leaf)}
+.lede{color:var(--muted);font-size:1.1rem}
+nav{display:flex;gap:14px;flex-wrap:wrap;font-size:.9rem;margin-bottom:8px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px 16px;margin:14px 0}
+.note{border-left:4px solid var(--ochre)}.warn{border-left:4px solid var(--rust)}.ok{border-left:4px solid var(--leaf)}
+table{width:100%;border-collapse:collapse;font-size:.92rem;margin:12px 0}
+th,td{border-bottom:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top}
+th{color:var(--wheat);font-weight:600}
+.tablewrap{overflow-x:auto}
+code{background:#1f2819;padding:1px 6px;border-radius:4px;font-size:.88em}
+pre.card{overflow-x:auto}
+footer{margin-top:48px;color:var(--muted);font-size:.85rem}
+</style>
+</head>
+<body>
+<main>
+<nav><a href="research.html">Research</a><a href="data.html">Data</a><a href="backend.html"><b>Back end</b></a><a href="frontend.html">Front end</a></nav>
+<h1>Back end: what runs behind the website, and why we chose it</h1>
+<p class="lede">The back end collects satellite readings, works out which plots are falling behind normal, keeps logins and field checks, and serves everything to the website. Last updated 4 November 2026.</p>
+
+<div class="card ok"><b>Design in one sentence.</b> A Python pipeline turns satellite readings into result files; a small FastAPI service with a SQLite database adds logins, field checks, photos, reports and orders; the website reads both. There is no big learned model: "normal" is plain statistics from past seasons, which is fast, explainable to a jury, and not a black box.</div>
+
+<h2>1. The stack and why each part</h2>
+<div class="tablewrap"><table>
+<tr><th>Component</th><th>What it is</th><th>Why we chose it</th></tr>
+<tr><td><b>Python 3.12</b></td><td>Language for the pipeline and the service</td><td>The geospatial and numeric tools we need are Python. rasterio wheels are not yet published for 3.14, hence 3.12.</td></tr>
+<tr><td><b>NumPy</b></td><td>Array maths</td><td>NDVI cubes (cell by time) are plain arrays; fast and simple.</td></tr>
+<tr><td><b>rasterio, shapely, mgrs</b></td><td>Read cloud-optimised GeoTIFFs, handle outlines, map tile names</td><td>Read only the window we need from the public bucket instead of downloading full satellite tiles.</td></tr>
+<tr><td><b><code>s2lite.py</code></b> (our reader)</td><td>Light Sentinel-2 reader with retry on dropped connections</td><td>Vendored so the project is self-contained; added retries after a network drop killed a long fetch.</td></tr>
+<tr><td><b>pandas, matplotlib</b></td><td>Tables and the visibility chart</td><td>Analysis and validation output.</td></tr>
+<tr><td><b>FastAPI + Uvicorn</b></td><td>The web service</td><td>Small, typed, fast, automatic API docs, easy to test with <code>httpx</code>.</td></tr>
+<tr><td><b>SQLite</b></td><td>One database file</td><td>Logins, checks, photos, reports, orders and audit log need a real database but not a server. It also keeps the demo working on a laptop with no internet.</td></tr>
+<tr><td><b>Result files (JSON)</b></td><td><code>data/results/*</code></td><td>The heavy analysis is run offline and saved. The site reads files, so it opens even if analysis tools are off.</td></tr>
+<tr><td><b>pytest + httpx</b></td><td>39 automated tests</td><td>9 on the analysis maths, 16 on the service and access rules, 8 on the picture renderer, 5 on the field evaluator, 1 on backups. All passing on 4 Nov 2026.</td></tr>
+<tr><td><b>Docker</b></td><td>Deployment recipe</td><td>Written but <b>never built</b> (the Docker engine was not running on the build machine).</td></tr>
+</table></div>
+<p>Options we rejected: a full PostgreSQL/PostGIS database (days of extra work, more to fail on stage), and a hosted backend such as Supabase (needs internet and accounts on stage). Files plus a tiny service was the lowest-risk choice.</p>
+
+<h2>2. The analysis pipeline</h2>
+<ol>
+<li><b>Fetch</b> (<code>fetch_cells.py</code>): Sentinel-2 windows for 2019 to 2026, any area, with tile merging for whole talukas.</li>
+<li><b>Clean and aggregate</b>: mask cloud and shadow with the SCL layer, average into 200 m (boxes) or 300 m (whole talukas) cells, drop cells with fewer than 30 clear pixels, bin into 10-day windows from 1 June.</li>
+<li><b>Mask to farmland</b> with ESA WorldCover (at least 50% cropland).</li>
+<li><b>Learn "normal"</b> (<code>analysis.py</code>): from the other seasons, aligned by crop age (green-up at NDVI 0.30) so late sowing is not mistaken for stress.</li>
+<li><b>Decide</b>: gap below normal gives Watch (−0.18) or Urgent (−0.36). Too little clear data gives <i>Cannot see</i>. Each plot also gets a one-line reason.</li>
+<li><b>Rank</b> (<code>build_results.py</code>): talukas ranked by excess over their usual flagged share for the date, with at least six past seasons required for a whole area.</li>
+<li><b>Validate</b> (<code>backtest.py</code>): leave-one-year-out backtest, thresholds tuned without 2026, then frozen; compared with a simple "less green than last reading" rule.</li>
+</ol>
+<div class="card note"><b>Rule we follow: never tune and test on the same data.</b> Thresholds are set from seasons other than 2026. 2026 is the untouched test.</div>
+
+<h2>3. The service: roles, safety, endpoints</h2>
+<h3>Five roles</h3>
+<table>
+<tr><th>Role</th><th>Can do</th></tr>
+<tr><td>Farmer</td><td>See only their own plots; record field checks; report a problem</td></tr>
+<tr><td>Taluka officer</td><td>See plots in their own taluka; field checks; reported list; download</td></tr>
+<tr><td>District officer</td><td>See all eight talukas and the ranking; download</td></tr>
+<tr><td>Centre operator</td><td>Build an evidence pack and record a simulated order for a farmer who visits</td></tr>
+<tr><td>Admin</td><td>Counts, create users, read the audit log</td></tr>
+</table>
+<h3>Safety measures (tested)</h3>
+<ul>
+<li>Passwords stored hashed; sign-in gives a signed (HMAC), time-limited token. Password rule: 10 or more characters with a letter and a digit.</li>
+<li>Lockout after five wrong passwords; an audit log of who did what.</li>
+<li>Wrong role, wrong taluka and wrong farmer are all refused (tests).</li>
+<li>Photo upload checked by its first bytes and size, not its file name.</li>
+<li>Security headers (<code>nosniff</code>, no framing, same-origin referrer) and GZip.</li>
+<li><b>Production mode</b> refuses to start without <code>CW_SECRET</code>, creates no demo accounts and hides the demo sign-in list.</li>
+<li>Safe database backups with <code>backup_db.py</code>.</li>
+</ul>
+<h3>Database tables (SQLite)</h3>
+<p><code>users</code>, <code>owners</code> (which farmer owns which plot), <code>checks</code> (stressed / fine / not sure, note, who, when), <code>reports</code>, <code>photos</code>, <code>orders</code> (simulated fee and centre share), <code>audit</code>.</p>
+<h3>Main endpoints</h3>
+<pre class="card"><code>POST /api/auth/login             GET /api/me            GET /api/health
+GET  /api/district               GET /api/talukas/{name}   (+ /series)
+GET  /api/plots/{pid}            POST /api/plots/{pid}/checks | /photo | /report
+GET  /api/plots/{pid}/evidence   GET /api/reported
+GET  /api/rain/{taluka}          GET /api/imagery/{area}   GET /api/areas
+GET  /api/accuracy               POST/GET /api/orders      GET /api/admin/stats
+GET  /api/audit                  POST /api/admin/users     POST /api/auth/change-password</code></pre>
+<p>Whole-taluka data loads lazily (two areas cached), so memory stays about 190 MB, and a taluka map is about 0.2 to 0.3 MB on the wire.</p>
+
+<h2>4. The money idea, kept honest</h2>
+<p>Farmers visit service centres for claim forms. Instead of reselling a government form (which may be free, fee-capped, or restricted), we sell an <b>evidence pack</b>: village, weeks behind normal, rainfall, dates and a satellite picture that supports a claim. In the demo, orders are <b>simulated and clearly labelled "no real money"</b>. The pack says it does not file a claim and does not guarantee a payout.</p>
+
+<h2>5. What is verified and what is not</h2>
+<table>
+<tr><th>Verified</th><th>Not verified</th></tr>
+<tr><td>39 automated tests pass; production mode tested in a separate process; access rules tested; the server log showed no errors in browser checks.</td>
+<td>The Docker image was never built; HTTPS, persistent storage and backups must be provided by whoever hosts it; lockout counter is in memory so run one instance only; no website automated tests; the replay slider re-implements the backend rule in JavaScript and no test checks the two stay in step.</td></tr>
+</table>
+
+<h2>6. Run it</h2>
+<pre class="card"><code>cd backend
+.venv\Scripts\python.exe -m uvicorn server:app --port 8100
+# or double-click start_cropwatch.bat in the project folder
+# tests:
+.venv\Scripts\python.exe -m pytest -q</code></pre>
+<p>More: <code>docs/BACKEND.md</code>, <code>docs/DEPLOY.md</code>, <code>docs/ROLES_AND_FEATURES.md</code>.</p>
+<footer>Crop Watch (AGR-09), Team SlothDevs. Branch: <code>backend</code>.</footer>
+</main>
+</body>
+</html>
