@@ -1,0 +1,131 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Crop Watch: Front end</title>
+<style>
+:root{--humus:#12170f;--bg:#11160e;--panel:#181f14;--panel2:#1f2819;--line:#33402a;--forest:#2f4a35;--moss:#5e7a3e;--leaf:#a9c75a;--wheat:#e9d8a6;--ochre:#e5a823;--rust:#d14a30;--sage:#8f988a;--text:#f1ebdd;--muted:#a3ab94}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font:16px/1.6 "Segoe UI",system-ui,sans-serif}
+main{max-width:980px;margin:0 auto;padding:32px 16px 80px}
+h1,h2,h3{font-family:Georgia,serif;font-weight:600;line-height:1.2}
+h1{font-size:2.2rem;margin:.2em 0}h2{font-size:1.5rem;margin:2.2em 0 .5em;color:var(--wheat)}h3{font-size:1.1rem;margin:1.4em 0 .3em;color:var(--leaf)}
+p,li{max-width:75ch}a{color:var(--leaf)}
+.lede{color:var(--muted);font-size:1.1rem}
+nav{display:flex;gap:14px;flex-wrap:wrap;font-size:.9rem;margin-bottom:8px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px 16px;margin:14px 0}
+.note{border-left:4px solid var(--ochre)}.warn{border-left:4px solid var(--rust)}.ok{border-left:4px solid var(--leaf)}
+table{width:100%;border-collapse:collapse;font-size:.92rem;margin:12px 0}
+th,td{border-bottom:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top}
+th{color:var(--wheat);font-weight:600}
+.tablewrap{overflow-x:auto}
+code{background:#1f2819;padding:1px 6px;border-radius:4px;font-size:.88em}
+.sw{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;margin:12px 0}
+.sw div{border:1px solid var(--line);border-radius:8px;overflow:hidden;font-size:.82rem}
+.sw i{display:block;height:46px}.sw span{display:block;padding:6px 8px;background:var(--panel)}
+.lv{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0}
+.lv b{padding:4px 12px;border-radius:99px;color:#12170e;font-size:.85rem}
+footer{margin-top:48px;color:var(--muted);font-size:.85rem}
+</style>
+</head>
+<body>
+<main>
+<nav><a href="research.html">Research</a><a href="data.html">Data</a><a href="backend.html">Back end</a><a href="frontend.html"><b>Front end</b></a></nav>
+<h1>Front end: what people see, and why it looks and works this way</h1>
+<p class="lede">The website is a cinematic landing page, then five role-based screens (farmer, taluka officer, district officer, service centre, admin) built around one map and one plot panel. Last updated 4 November 2026.</p>
+
+<div class="card ok"><b>Design in one sentence.</b> An earthy, soil-and-leaf look (so it reads as farming, not as a generic dark dashboard), a map that flies from Maharashtra down to a single plot, and plain words everywhere, because the people using it are officers and farmers, not analysts.</div>
+
+<h2>1. Colour scheme and why</h2>
+<p>We first built a blue dark theme and then replaced it: blue felt like a generic tech dashboard and did not suit agriculture. The palette now comes from the field itself: dark humus soil, forest and moss greens, ripening wheat, and two warning colours that are used only for meaning.</p>
+<div class="sw">
+<div><i style="background:#12170f"></i><span>Humus <code>#12170f</code><br>deepest soil, page background</span></div>
+<div><i style="background:#181f14"></i><span>Panel <code>#181f14</code><br>cards and side panels</span></div>
+<div><i style="background:#2f4a35"></i><span>Forest <code>#2f4a35</code><br>structure, borders of calm areas</span></div>
+<div><i style="background:#5e7a3e"></i><span>Moss <code>#5e7a3e</code><br>secondary green</span></div>
+<div><i style="background:#a9c75a"></i><span>Leaf <code>#a9c75a</code><br>living growth, main accent, healthy</span></div>
+<div><i style="background:#e9d8a6"></i><span>Wheat <code>#e9d8a6</code><br>harvest highlights, headings</span></div>
+<div><i style="background:#f2ece1"></i><span>Paper <code>#f2ece1</code><br>light sections, text on dark</span></div>
+</div>
+<h3>The four level colours (used the same everywhere)</h3>
+<div class="lv"><b style="background:#a9c75a">Normal</b><b style="background:#e5a823">Watch</b><b style="background:#d14a30;color:#fff">Urgent</b><b style="background:#8f988a">Cannot see</b></div>
+<p><b>Rule: never colour alone.</b> Every level also carries its word, so the screen still works for colour-blind users and on a washed-out projector. "Cannot see" is grey on purpose: missing data must never look like "fine".</p>
+
+<h2>2. Typography</h2>
+<table>
+<tr><th>Role</th><th>Font</th><th>Why</th></tr>
+<tr><td>Display and headings</td><td><b>Fraunces</b> (variable serif)</td><td>Warm, slightly old-fashioned, rural; gives the page a personality that a default sans would not.</td></tr>
+<tr><td>Body and interface</td><td><b>Figtree</b> (variable sans)</td><td>Clean and readable at small sizes and on phones.</td></tr>
+</table>
+<p>Both are self-hosted through <code>@fontsource-variable</code>, so the site needs no internet for fonts at the demo.</p>
+
+<h2>3. The tools we used</h2>
+<div class="tablewrap"><table>
+<tr><th>Tool</th><th>What it does here</th><th>Why this one</th></tr>
+<tr><td><b>React 18</b></td><td>Components and screens</td><td>Reusable pieces (plot panel, chart, slider) shared between roles.</td></tr>
+<tr><td><b>Vite 5</b></td><td>Dev server and build</td><td>Fast reloads; small production bundle.</td></tr>
+<tr><td><b>Tailwind CSS v4</b></td><td>Layout and spacing utilities</td><td>Fast, consistent responsive layout; colours come from our own CSS variables, not Tailwind defaults.</td></tr>
+<tr><td><b>MapLibre GL 4.7</b></td><td>The maps, including 3D extruded plot cells</td><td>Open-source (no map API key or bill), handles tens of thousands of cells, has a built-in "fly to".</td></tr>
+<tr><td><b>GSAP + Lenis</b></td><td>Landing-page animation and smooth scroll</td><td>Precise scroll-linked motion; Lenis gives the smooth, cinematic scroll feel.</td></tr>
+<tr><td><b>Hash router</b> (own, small)</td><td>Page navigation and deep links</td><td>Works from a static file server and opens a plot straight from a link.</td></tr>
+<tr><td><b>Own chart</b> (SVG)</td><td>Plot greenness against the normal band</td><td>No chart library needed; fully controlled labels and cloudy-week marks.</td></tr>
+</table></div>
+
+<h2>4. The screens and components</h2>
+<h3>Landing page</h3>
+<p>A cinematic page in <code>landing/</code>: preloader, hero, a Maharashtra map story, a growing-crop (stalk) animation, the problem, the process in four steps, who it is for, and an honesty strip. Motion is reduced automatically for users who ask for less motion, and the custom cursor and effects are switched off on touch screens.</p>
+<h3>District page (district officer)</h3>
+<p>The real outlines of Jalna's eight talukas, coloured by how far 2026 is above the usual share, with a ranking list and CSV download.</p>
+<h3>Taluka map (the main screen)</h3>
+<ul>
+<li><b>3D cells:</b> every farmland plot is an extruded square coloured by level, and the camera flies to a plot with a tilted, rotating move.</li>
+<li><b>Season replay slider:</b> recolours the whole taluka week by week with a marker at the 25 September order date, so a viewer sees the stress spread. It re-implements the backend rule in JavaScript.</li>
+<li><b>Floating panels:</b> the legend and replay controls sit as translucent, blurred cards over the map; the priority list ("visit first") is a side panel on desktop and a slide-up drawer on phones; opening a plot slides in the plot panel. Panels float so the map stays the hero.</li>
+</ul>
+<h3>Plot panel</h3>
+<p>One plain sentence, a chart against the normal range, rain strip (labelled context, not a cause), field-check history, photos, a report button, and the before/after slider.</p>
+<h3>Before/after picture slider</h3>
+<p>Raw level colours on blocks were hard to read, so we added real satellite pictures. <b>"Compare years"</b> is the default (a typical ordinary year against 2026, same time of year, so normal ripening is removed from the comparison). "Compare dates" appears only when both pictures are at least 60% clear. Pictures are <b>pre-rendered</b> so nothing is computed while presenting. The white square marks the plot.</p>
+<h3>Role screens</h3>
+<table>
+<tr><th>Screen</th><th>For</th><th>Key things</th></tr>
+<tr><td>Farmer</td><td>Farmers</td><td>Own plots, large buttons, Stressed / Fine / Not sure check, photo, Marathi</td></tr>
+<tr><td>Taluka</td><td>Taluka officers</td><td>Own taluka map, priority list, field checks</td></tr>
+<tr><td>District</td><td>District officers</td><td>Ranking of all eight talukas, CSV</td></tr>
+<tr><td>Centre</td><td>Service-centre operators</td><td>Evidence pack and simulated order, "demo, no real money"</td></tr>
+<tr><td>Admin</td><td>Our team</td><td>Counts, create users, audit log</td></tr>
+<tr><td>Reported, Accuracy, About</td><td>Everyone with access</td><td>Reported plots; measured accuracy with limits; sources and honest limits</td></tr>
+</table>
+
+<h2>5. Words on screen</h2>
+<table>
+<tr><th>We avoid</th><th>We say</th></tr>
+<tr><td>"Crop disease detected"</td><td>"Crops are behind a normal season"</td></tr>
+<tr><td>"No problem" (when data is missing)</td><td>"Cannot see"</td></tr>
+<tr><td>"AI prediction"</td><td>"Comparison with a normal season"</td></tr>
+<tr><td>"Guaranteed early warning"</td><td>"Early flag, to be confirmed by a visit" (and today we do not even claim early)</td></tr>
+<tr><td>"We file your claim"</td><td>"A report to attach to your claim"</td></tr>
+</table>
+<p>The Accuracy page sits in the top bar, not buried, because it is our answer to inflated claims. It says plainly that the signal appears after the order date and that nothing is confirmed on the ground.</p>
+
+<h2>6. Language, phones and offline</h2>
+<ul>
+<li><b>English and Marathi</b> switch (<code>lib/i18n.jsx</code>). The Marathi was written without a native speaker and is <b>unreviewed</b>.</li>
+<li><b>Phone first</b> for the farmer screen and map drawers; checked at phone width in the browser, <b>not on a real phone</b>.</li>
+<li><b>Offline:</b> a service worker caches the shell and a queue stores field checks to send later. The code exists, but the built-in browser pane cannot register a service worker, so <b>offline mode is not verified</b>.</li>
+</ul>
+
+<h2>7. What we borrowed and what we wrote ourselves</h2>
+<p>From the T.R.A.C.E. project we took <i>ideas only</i>: landing then console, attention-based lists, a one-sentence summary on opening, an "uncertain" counter, a before/after swipe, an offline field workflow. We did <b>not</b> copy code, because that repository has no licence file. See <code>docs/TRACE_NOTES.md</code>.</p>
+
+<h2>8. Run it</h2>
+<pre class="card"><code>cd frontend
+npm install
+npm run dev      # http://localhost:5180 (needs the back end on :8100)
+npm run build    # the service serves the built site at http://localhost:8100/</code></pre>
+<p>More: <code>docs/FRONTEND.md</code>, <code>docs/ACCESS_GUIDE.md</code>, <code>docs/WHAT_WORKS.md</code>.</p>
+<footer>Crop Watch (AGR-09), Team SlothDevs. Branch: <code>frontend</code>.</footer>
+</main>
+</body>
+</html>
