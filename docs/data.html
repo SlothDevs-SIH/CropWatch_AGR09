@@ -1,0 +1,135 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Crop Watch: Data</title>
+<style>
+:root{--bg:#11160e;--panel:#181f14;--line:#33402a;--leaf:#a9c75a;--wheat:#e9d8a6;--ochre:#e5a823;--rust:#d14a30;--sage:#8f988a;--text:#f1ebdd;--muted:#a3ab94}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font:16px/1.6 "Segoe UI",system-ui,sans-serif}
+main{max-width:980px;margin:0 auto;padding:32px 16px 80px}
+h1,h2,h3{font-family:Georgia,serif;font-weight:600;line-height:1.2}
+h1{font-size:2.2rem;margin:.2em 0}h2{font-size:1.5rem;margin:2.2em 0 .5em;color:var(--wheat)}h3{font-size:1.1rem;margin:1.4em 0 .3em;color:var(--leaf)}
+p,li{max-width:75ch}a{color:var(--leaf)}
+.lede{color:var(--muted);font-size:1.1rem}
+nav{display:flex;gap:14px;flex-wrap:wrap;font-size:.9rem;margin-bottom:8px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px 16px;margin:14px 0}
+.note{border-left:4px solid var(--ochre)}.warn{border-left:4px solid var(--rust)}.ok{border-left:4px solid var(--leaf)}
+table{width:100%;border-collapse:collapse;font-size:.92rem;margin:12px 0}
+th,td{border-bottom:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top}
+th{color:var(--wheat);font-weight:600}
+.tablewrap{overflow-x:auto}
+code{background:#1f2819;padding:1px 6px;border-radius:4px;font-size:.88em}
+.tag{display:inline-block;font-size:.78rem;padding:1px 8px;border-radius:99px;border:1px solid var(--line);color:var(--muted)}
+footer{margin-top:48px;color:var(--muted);font-size:.85rem}
+</style>
+</head>
+<body>
+<main>
+<nav><a href="research.html">Research</a><a href="data.html"><b>Data</b></a><a href="backend.html">Back end</a><a href="frontend.html">Front end</a></nav>
+<h1>Data: what we collected, where it came from, what it means</h1>
+<p class="lede">Crop Watch compares every farmland plot in Jalna district with what is normal for that time of year, using free satellite pictures. This page explains each dataset: its source, its contents, its technical meaning, and its limits. Last updated 4 November 2026.</p>
+
+<div class="card ok"><b>In one line.</b> Everything is free and open. Greenness comes from Sentinel-2, rainfall from NASA POWER, the farmland mask from ESA WorldCover, and taluka outlines from geoBoundaries. We invented none of it and bought none of it. We only measured and compared.</div>
+
+<h2>1. The sources at a glance</h2>
+<div class="tablewrap"><table>
+<tr><th>Dataset</th><th>Source</th><th>What we use it for</th><th>Licence / credit</th></tr>
+<tr><td>Satellite pictures</td><td>Copernicus <b>Sentinel-2 L2A</b>, read from the public Earth Search cloud-optimised GeoTIFF archive (Amazon)</td><td>Crop greenness (NDVI) every few days; true-colour pictures for the before/after slider</td><td>Free and open. "Contains modified Copernicus Sentinel data"</td></tr>
+<tr><td>Rainfall</td><td><b>NASA POWER</b>, variable PRECTOTCORR</td><td>Context: was June to October dry? (not a cause)</td><td>Free. About 0.5 degree grid, so coarse (roughly 50 km)</td></tr>
+<tr><td>Farmland mask</td><td><b>ESA WorldCover 2021 v200</b> (10 m)</td><td>Keep only cropland cells; ignore towns, forest, water</td><td>CC BY 4.0</td></tr>
+<tr><td>Taluka outlines</td><td><b>geoBoundaries ADM3</b> (LGD via Pathways Data)</td><td>Clip each taluka to its true shape; rank talukas</td><td>ODbL, attribution required</td></tr>
+<tr><td>State and district outlines</td><td>geoBoundaries (DataMeet CC BY 2.5 IN; Pathways Data / LGD ODbL)</td><td>The Maharashtra landing map</td><td>Attribution required</td></tr>
+<tr><td>The known event</td><td>The state's drought order of 25 September 2026 (as reported)</td><td>The one date we test against</td><td>Public record</td></tr>
+</table></div>
+
+<h2>2. Satellite greenness (the main dataset)</h2>
+<h3>What a satellite picture contains</h3>
+<p>Sentinel-2 photographs the ground roughly every five days (two satellites) in 13 colour bands. Each pixel on the bands we use is 10 m by 10 m. We use the red band (B04) and the near-infrared band (B08), plus a <b>scene classification layer (SCL)</b> that labels each pixel as cloud, cloud shadow, water, snow, vegetation, and so on.</p>
+<h3>What NDVI technically means</h3>
+<p><b>NDVI = (NIR − Red) / (NIR + Red).</b> Healthy leaves absorb red light for photosynthesis and strongly reflect near-infrared, so a dense green crop gives a high NDVI (about 0.6 to 0.9). Bare soil sits near 0.1 to 0.2. A crop that is drying, thinning, or growing late shows a lower NDVI than normal for that time of year. NDVI is a measure of <i>how much green cover there is</i>. It does not say why.</p>
+<h3>How a raw scene becomes a number</h3>
+<ol>
+<li><b>Fetch</b> only the window we need, never a full tile, for 2019 to 2026 (June to October each year).</li>
+<li><b>Mask</b> cloud, cloud shadow, water and snow using the SCL layer.</li>
+<li><b>Aggregate into cells.</b> A cell is a square of ground: 200 m in the original sample boxes (read at 20 m, so 100 pixels per cell), and <b>300 m for whole talukas</b> (read at 60 m). A cell needs at least 30 clear pixels in a scene, otherwise it has <i>no reading</i> for that scene. We never fill the gap with a guess.</li>
+<li><b>Bin by time:</b> readings are averaged into <b>10-day bins from 1 June</b> (16 bins per season) so one cloudy week does not leave a hole.</li>
+<li><b>Keep only farmland:</b> a cell counts only if at least half of it is cropland in WorldCover.</li>
+</ol>
+<div class="card note"><b>Why cells and not single fields.</b> Plots in Jalna are about 1 to 2 hectares. At 10 to 60 m resolution we cannot see crop rows or individual small fields reliably. A 200 to 300 m cell averages many fields and is stable. This is why the product says "plots", not "fields", and never claims field-level diagnosis.</div>
+
+<h3>What is stored</h3>
+<table>
+<tr><th>File</th><th>Content</th><th>In git?</th></tr>
+<tr><td><code>data/raw/&lt;area&gt;.npz</code>, <code>_hist.npz</code></td><td>NDVI per cell per scene, 2023 to 2026 and 2019 to 2022</td><td>No (large). Rebuilt by <code>fetch_cells.py</code></td></tr>
+<tr><td><code>data/rain/&lt;taluka&gt;.json</code></td><td>Daily rainfall (mm), June to October, 2018 to 2026</td><td>Yes</td></tr>
+<tr><td><code>data/landcover/&lt;name&gt;.json</code></td><td>Share of each land class per cell</td><td>Yes</td></tr>
+<tr><td><code>data/coverage.json</code></td><td>Real area of each taluka and box, and share covered</td><td>Yes</td></tr>
+<tr><td><code>data/results/*</code></td><td>Levels, reasons and series per cell; the district ranking</td><td>Yes (derived)</td></tr>
+<tr><td><code>data/imagery/&lt;area&gt;/</code></td><td>Pre-rendered true-colour pictures: a typical year and 2026, mid-September, plus <code>meta.json</code> listing the dates used</td><td>No (large). Rebuilt by <code>render_imagery.py</code></td></tr>
+<tr><td><code>validation/</code></td><td>Visibility test, backtests, the sealed field sample</td><td>Yes</td></tr>
+</table>
+
+<h2>3. Coverage: what ground the data actually covers</h2>
+<p>We started with one 4 km sample box per taluka (about 112 km² each). Those boxes proved misleading in both directions (a box in Ghansawangi read 5% flagged while the whole taluka read 44%), so we then fetched <b>all eight talukas whole</b>, clipped to their real outlines. Whole-taluka data is now the basis for the ranking.</p>
+<div class="tablewrap"><table>
+<tr><th>Taluka (whole)</th><th>Farmland cells (300 m)</th></tr>
+<tr><td>Mantha</td><td>7,639</td></tr><tr><td>Jalna</td><td>10,642</td></tr><tr><td>Ambad</td><td>11,724</td></tr><tr><td>Ghansawangi</td><td>11,841</td></tr>
+<tr><td>Partur</td><td>7,675</td></tr><tr><td>Badnapur</td><td>7,252</td></tr><tr><td>Bhokardan</td><td>12,294</td></tr><tr><td>Jafrabad</td><td>7,478</td></tr>
+</table></div>
+<p>Jalna district is 7,688 km². The service holds about 88,600 plots in total, including the older box data.</p>
+
+<h2>4. Rainfall</h2>
+<p>NASA POWER gives modelled daily rainfall on a grid of about half a degree. We total June to October for 2018 to 2026. For 2026 the total was <b>about 52% of the 2018 to 2025 average</b> (our own calculation, consistent with the roughly 46% deficit reported for the region). Because the grid is coarse, two neighbouring talukas can share one rainfall cell. We therefore show rain as <i>context, not a cause</i>.</p>
+
+<h2>5. Farmland mask</h2>
+<p>ESA WorldCover classifies the ground at 10 m into classes such as tree cover, cropland, built-up and water. We keep a cell only if at least half of it is cropland. Limits: it is a 2021 map, so land use may have changed, and it says "cropland", <b>not which crop</b>. We assume the dominant Kharif crop in Jalna is soybean and cotton but do not map them separately.</p>
+
+<h2>6. How "normal" and the alert levels are built from this data</h2>
+<ul>
+<li><b>Crop-age alignment.</b> Past seasons are slid in time so the green-up (NDVI crossing 0.30) lines up. A late-sown plot is then compared with other plots at the same crop age, not the same calendar date.</li>
+<li><b>Normal</b> for each cell and 10-day bin is built from the other seasons (never from the season being tested).</li>
+<li><b>Levels:</b> <i>Watch</i> when the gap below normal passes <b>−0.18</b>, <i>Urgent</i> past <b>−0.36</b> (NDVI units, after alignment). These thresholds were tuned on seasons other than 2026 and then frozen. A plot with too little clear data is labelled <i>Cannot see</i>, never "fine".</li>
+<li><b>Ranking:</b> talukas are ranked by <i>excess over the usual share</i> of flagged farmland for that date, so a taluka that is always a bit high is not unfairly marked down.</li>
+</ul>
+
+<h2>7. What the data shows (measured, not claimed)</h2>
+<p>Share of visible farmland flagged at the 25 September 2026 order date, against the range in ordinary seasons 2019 to 2025:</p>
+<div class="tablewrap"><table>
+<tr><th>Taluka (whole)</th><th>2026</th><th>Ordinary seasons</th><th>Above every ordinary season?</th></tr>
+<tr><td>Mantha</td><td>55%</td><td>4% to 11%</td><td>Yes</td></tr>
+<tr><td>Jalna</td><td>49%</td><td>3% to 7%</td><td>Yes</td></tr>
+<tr><td>Partur</td><td>47%</td><td>2% to 9%</td><td>Yes</td></tr>
+<tr><td>Ghansawangi</td><td>44%</td><td>2% to 7%</td><td>Yes</td></tr>
+<tr><td>Ambad</td><td>33%</td><td>1% to 6%</td><td>Yes</td></tr>
+<tr><td>Badnapur</td><td>28%</td><td>3% to 14%</td><td>Yes</td></tr>
+<tr><td>Bhokardan</td><td>24%</td><td>3% to 20%</td><td>Yes (smaller margin)</td></tr>
+<tr><td>Jafrabad</td><td>11%</td><td>3% to 10%</td><td>Marginal</td></tr>
+</table></div>
+<div class="card warn"><b>What it does not show.</b> There is <b>no lead time</b>: the signal first stands out 4 to 14 days <i>after</i> the order date (and in Bhokardan and Jafrabad was not detected before it). So the data shows <i>where</i> 2026 differs from ordinary seasons, not <i>earlier than</i> officials. And nothing has been confirmed on the ground yet.</div>
+
+<h2>8. Ground truth (planned, not collected)</h2>
+<p>We drew a <b>blind, sealed field sample</b>: 40 main plots and 12 spares, stratified across Partur, Ambad and Ghansawangi. The answer key is sealed and only its SHA-256 hash is committed, so we cannot adjust the sample after seeing results. <b>No plot has been visited yet</b> (0 observations). Field sheets and an evaluator are ready in <code>validation/field/</code> and <code>backend/evaluate_field.py</code>.</p>
+
+<h2>9. Known limits of the data</h2>
+<ul>
+<li>10 to 60 m resolution: we see fields turn from green to brown, not crop rows. A ripened or ploughed field can look like a dried one.</li>
+<li>Cloud: mid-August pictures are only 20% to 40% clear in some areas, so the slider uses mid-September.</li>
+<li>Rainfall is coarse; farmland mask is from 2021 and gives no crop type.</li>
+<li>Eight seasons (2019 to 2026) is a short history for "normal".</li>
+<li>The first Mantha box was placed with guessed coordinates and lay in Lonar, outside the district. We found this by checking every box against the outlines, moved it, and re-fetched. All earlier Mantha numbers were wrong and were replaced.</li>
+</ul>
+
+<h2>10. Rebuild it yourself</h2>
+<pre class="card"><code>fetch_cells.py [--years 2019 2020 2021 2022 --tag _hist]   # satellite readings
+fetch_cells.py PartWhole ...                              # whole-taluka areas
+make_taluka_outlines.py   fetch_rain.py   fetch_landcover.py
+backtest.py --tune        # chooses thresholds without using 2026
+build_results.py          # levels, reasons, ranking
+render_imagery.py         # before/after pictures</code></pre>
+<p>Full table: <code>docs/DATA.md</code>. Audit of what works: <code>docs/WHAT_WORKS.md</code>. Backtests: <code>validation/BACKTEST.md</code>.</p>
+<footer>Crop Watch (AGR-09), Team SlothDevs. Branch: <code>data</code>.</footer>
+</main>
+</body>
+</html>
