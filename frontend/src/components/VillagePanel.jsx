@@ -38,7 +38,7 @@ export default function VillagePanel({ village, plots, onOpenPlot, onClose }) {
       </div>
 
       <a className="btn btn-primary w-full mt-3 text-center block" style={{ padding: "14px", fontSize: "1.1rem" }} target="_blank" rel="noopener noreferrer"
-        href={`https://www.google.com/maps/dir/?api=1&destination=${lat},${lon}&travelmode=driving`}>{t("openInMaps")}</a>
+        href={`https://www.google.com/maps/dir/?api=1&destination=${lat},${lon}&travelmode=driving`}>{t("openVillageInMaps")}</a>
 
       {worst.length > 0 && (
         <>

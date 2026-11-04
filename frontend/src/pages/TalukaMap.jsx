@@ -36,6 +36,7 @@ export default function TalukaMap({ name, user, onBack, focus }) {
   const closeTip = () => { setTip(false); try { localStorage.setItem("cw_tip", "1"); } catch {} };
   const [mode, setMode] = useState(farmer ? "plot" : "village");   // what a tap on the map selects
   const modeRef = useRef(mode); modeRef.current = mode;
+  const [ready, setReady] = useState(false);                  // the first picture of the map has been drawn
   const [vsel, setVsel] = useState(null);                         // the selected village
   const villagesRef = useRef(null);
   const [base, setBase] = useState(true);                      // satellite picture under the squares
@@ -93,6 +94,7 @@ export default function TalukaMap({ name, user, onBack, focus }) {
     const ext = farmer ? extent(geo.features) : [[bb[0], bb[1]], [bb[2], bb[3]]];
     const map = new maplibregl.Map({ container: box.current, style: STYLE, bounds: ext, fitBoundsOptions: { padding: 40 }, zoom: 8, attributionControl: false });
     mapRef.current = map;
+    map.once("idle", () => setReady(true));
     map.on("load", () => {
       map.addSource("cells", { type: "geojson", data: geo, promoteId: "id" });
       map.addLayer({ id: "flat", type: "fill", source: "cells", filter: ["==", ["get", "level"], "not_farmland"], paint: { "fill-color": "#1a2214" } });
@@ -327,6 +329,7 @@ export default function TalukaMap({ name, user, onBack, focus }) {
             <button className="btn btn-primary w-full mt-3" style={{ padding: "12px" }} onClick={closeTip}>{t("gotIt")}</button>
           </div>
         )}
+        {!ready && <div className="absolute inset-0 grid place-items-center pointer-events-none"><div className="card px-4 py-3 text-lg">{t("mapLoading")}</div></div>}
         {!farmer && (
           <div className="absolute right-3 bottom-40 card p-2 flex items-center gap-1" style={{ background: "rgba(24,31,20,.95)" }}>
             <span className="text-sm px-1" style={{ color: "var(--muted)" }}>{t("tapSelects")}</span>
