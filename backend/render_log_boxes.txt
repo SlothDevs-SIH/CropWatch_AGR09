@@ -1,0 +1,15 @@
+C:\Soham\college work\CropWatch\backend\analysis.py:56: RuntimeWarning: Mean of empty slice
+  arr[b] = np.nanmean(ndvi[idx], axis=0)
+C:\Soham\college work\CropWatch\backend\render_imagery.py:88: RuntimeWarning: All-NaN slice encountered
+  med = np.nanmedian(stack, axis=0)
+C:\Soham\college work\CropWatch\backend\render_imagery.py:91: RuntimeWarning: All-NaN slice encountered
+  fallback = np.nan_to_num(np.nanmedian(raw, axis=0), nan=0.12)       # a pixel with no data in any pass becomes neutral grey
+  Partur/normal: 2021, dates ['2021-09-03', '2021-09-08', '2021-09-13', '2021-09-18', '2021-09-23'], 87.7% clear
+C:\Soham\college work\CropWatch\backend\render_imagery.py:88: RuntimeWarning: All-NaN slice encountered
+  med = np.nanmedian(stack, axis=0)
+C:\Soham\college work\CropWatch\backend\render_imagery.py:91: RuntimeWarning: All-NaN slice encountered
+  fallback = np.nan_to_num(np.nanmedian(raw, axis=0), nan=0.12)       # a pixel with no data in any pass becomes neutral grey
+  Partur/now: 2026, dates ['2026-09-07', '2026-09-17', '2026-09-19', '2026-09-22', '2026-09-27'], 97.6% clear
+Partur: done in 197s (600 x 600 px, 10 m)
+C:\Soham\college work\CropWatch\backend\analysis.py:56: RuntimeWarning: Mean of empty slice
+  arr[b] = np.nanmean(ndvi[idx], axis=0)

@@ -38,7 +38,7 @@ export default function Farmer({ user }) {
           const lv = LEVELS[p.level];
           return (
             <button key={p.id} onClick={() => open(p.id)} className="card p-5 text-left slide-in" style={{ borderColor: lv.color, borderWidth: 2 }}>
-              <div className="text-base" style={{ color: "var(--muted)" }}>{t("field")} {i + 1}</div>
+              <div className="text-base" style={{ color: "var(--muted)" }}>{t("field")} {i + 1}{p.village ? ` · ${p.village}` : ""}</div>
               <div className="flex items-center gap-3 mt-1">
                 <i style={{ background: lv.color, width: 22, height: 22, borderRadius: 99, display: "inline-block", flexShrink: 0 }} />
                 <b className="text-xl leading-snug">{t(`f_${p.level}`)}</b>

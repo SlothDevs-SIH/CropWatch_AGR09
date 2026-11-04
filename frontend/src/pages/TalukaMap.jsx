@@ -97,6 +97,12 @@ export default function TalukaMap({ name, user, onBack, focus }) {
         paint: { "line-color": "#ffffff", "line-opacity": 0.45, "line-width": ["interpolate", ["linear"], ["zoom"], 10, 0.2, 15, 1.2] } });
       map.addLayer({ id: "sel", type: "fill-extrusion", source: "cells", filter: ["==", ["get", "id"], ""],
         paint: { "fill-extrusion-color": "#ffffff", "fill-extrusion-height": 60, "fill-extrusion-opacity": 0.45 } });
+      fetch("/jalna_villages.json").then((r) => r.json()).then((fc) => {                  // village outlines (Census 2011, open data) drawn as dashed lines
+        if (!mapRef.current || map.getSource("villages")) return;
+        map.addSource("villages", { type: "geojson", data: fc });
+        map.addLayer({ id: "village-lines", type: "line", source: "villages", filter: ["==", ["get", "taluka"], geo.properties.parent_taluka],
+          paint: { "line-color": "#fff6cf", "line-opacity": 0.85, "line-width": ["interpolate", ["linear"], ["zoom"], 9, 0.6, 14, 2], "line-dasharray": [3, 2] } });
+      }).catch(() => {});
       map.addControl(new maplibregl.ScaleControl({ maxWidth: 120, unit: "metric" }), "bottom-left");
       map.on("click", "cells", (e) => pickRef.current(e.features[0].properties.id));
       map.on("mouseenter", "cells", () => { map.getCanvas().style.cursor = "pointer"; });
@@ -231,7 +237,8 @@ export default function TalukaMap({ name, user, onBack, focus }) {
                 <i style={{ background: lv.color, width: 16, height: 16, borderRadius: 99, display: "inline-block", flexShrink: 0 }} />
                 <div className="min-w-0">
                   <b className="text-lg block leading-tight" style={{ color: lv.color }}>{word(p.level)}</b>
-                  <span className="text-sm block break-all" style={{ color: "var(--muted)" }}>{p.id}</span>
+                  {p.village && <span className="text-base block">{p.village}</span>}
+                  <span className="text-xs block break-all" style={{ color: "var(--muted)" }}>{p.id}</span>
                 </div>
                 {p.status !== "none" && <span className="chip ml-auto text-sm text-center">{t(sk)}</span>}
               </div>

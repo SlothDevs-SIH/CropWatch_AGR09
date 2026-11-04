@@ -10,6 +10,9 @@ import json
 from pathlib import Path
 
 import numpy as np
+import shapely
+from shapely.geometry import shape
+from shapely.strtree import STRtree
 
 from analysis import (DEFAULT_TH, NBINS, aligned_normal, bin_of, binned_by_year, crop_mask, doy, flagged_share, inside_mask, level_series,
                       load_raw, normal_from, rain_total, sow_bins)
@@ -20,6 +23,37 @@ ROOT = Path(__file__).resolve().parent.parent
 OUT = ROOT / "data" / "results"
 TEST_YEAR = 2026
 MIN_BASELINE_YEARS = 6          # a whole-taluka area is not ranked on fewer past seasons: three years (one of them dry) is too weak a "normal"
+
+
+_VILL = None
+
+
+def _villages():
+    """The Jalna village outlines (make_villages.py), loaded once."""
+    global _VILL
+    if _VILL is None:
+        fc = json.loads((ROOT / "data" / "jalna_villages.geojson").read_text(encoding="utf-8"))
+        geoms = [shape(f["geometry"]) for f in fc["features"]]
+        _VILL = (STRtree(geoms), [f["properties"]["name"] for f in fc["features"]])
+    return _VILL
+
+
+def locate_villages(bbox, R, C, inside):
+    """{(row, col): village name} for the cells inside the taluka: the village whose outline holds the cell centre, else the nearest one."""
+    tree, names = _villages()
+    w, s, e, n = bbox
+    dx, dy = (e - w) / C, (n - s) / R
+    rc = [(r, c) for r in range(R) for c in range(C) if inside[r, c]]
+    pts = shapely.points([[w + (c + 0.5) * dx, n - (r + 0.5) * dy] for r, c in rc])
+    ip, ig = tree.query(pts, predicate="within")
+    out = {}
+    for p, g in zip(ip, ig):
+        out.setdefault(rc[int(p)], names[int(g)])
+    miss = [i for i in range(len(rc)) if rc[i] not in out]
+    if miss:
+        for i, g in zip(miss, tree.nearest(pts[miss])):
+            out[rc[i]] = names[int(g)]
+    return out
 
 
 class NotEnoughHistory(Exception):
@@ -80,6 +114,7 @@ def build_one(name, spec, th, align):
             mask = np.nan_to_num(np.nanmax(normal, axis=0), nan=0) >= 0.35          # old shortcut, only if WorldCover is missing
     mask = mask & inside
     has_base = np.isfinite(normal).any(0)
+    village_of = locate_villages(bbox, R, C, inside)
     width = 3 if max(R, C) > 99 else 2
     feats, counts = [], {"normal": 0, "watch": 0, "urgent": 0, "cannot_see": 0, "not_farmland": 0}
     for r in range(R):
@@ -88,7 +123,7 @@ def build_one(name, spec, th, align):
                 continue                                                            # outside the taluka: not drawn, not counted
             pid = f"{spec['prefix']}-r{r:0{width}d}c{c:0{width}d}"
             farm = bool(mask[r, c] and has_base[r, c])
-            props = {"id": pid, "taluka": spec["taluka"], "area": name, "kind": spec["kind"], "row": r, "col": c, "farmland": farm}
+            props = {"id": pid, "taluka": spec["taluka"], "area": name, "kind": spec["kind"], "row": r, "col": c, "farmland": farm, "village": village_of.get((r, c))}
             if not farm:
                 props["level"] = "not_farmland"
                 counts["not_farmland"] += 1

@@ -1,0 +1,6 @@
+C:\Soham\college work\CropWatch\backend\analysis.py:56: RuntimeWarning: Mean of empty slice
+  arr[b] = np.nanmean(ndvi[idx], axis=0)
+C:\Soham\college work\CropWatch\backend\render_imagery.py:88: RuntimeWarning: All-NaN slice encountered
+  med = np.nanmedian(stack, axis=0)
+C:\Soham\college work\CropWatch\backend\render_imagery.py:91: RuntimeWarning: All-NaN slice encountered
+  fallback = np.nan_to_num(np.nanmedian(raw, axis=0), nan=0.12)       # a pixel with no data in any pass becomes neutral grey

@@ -14,6 +14,7 @@ Everything in `data/` and how to rebuild it. All sources are free and open. Larg
 | `data/imagery/<area>/` | Pre-rendered true-colour pictures (typical year and 2026, mid-September) and a `meta.json` saying which dates went in | `backend/render_imagery.py` | No (large) | Copernicus Sentinel-2 L2A. "Contains modified Copernicus Sentinel data" |
 | `data/results/` | Levels, reasons, series per cell and the district ranking | `backend/build_results.py` | Yes | Derived from the above |
 | `frontend/public/maharashtra.json` | Simplified state and district outlines | `backend/make_boundaries.py` | Yes | geoBoundaries (DataMeet CC BY 2.5 IN; Pathways Data / LGD ODbL). Attribution required |
+| `data/jalna_villages.geojson` | The 982 village outlines of Jalna district (Census 2011 boundaries); each plot is tagged with the village that holds its centre | `backend/make_villages.py` | Yes (0.4 MB) | geoBoundaries ADM5 India villages (Pathways Data / censusindia.gov.in, ODbL). Source file is 467 MB and not kept in git. Attribution required |
 | `validation/` | Visibility test, backtest, known-event notes | `backend/visibility_test.py`, `backend/backtest.py` | Yes | Ours |
 
 ## How a cell is read

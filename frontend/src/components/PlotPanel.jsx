@@ -34,7 +34,8 @@ export default function PlotPanel({ plot, user, onChanged, onPrev, onNext, onClo
         {onNext && <button className="btn" onClick={onNext} aria-label="Next plot">→</button>}
         <button className="btn ml-auto" onClick={onClose} style={{ padding: "10px 16px", fontSize: "1rem" }}>{t("close")}</button>
       </div>
-      <h3 className="text-xl font-bold mt-3">{plot.id}</h3>
+      {plot.village && !farmer && <h3 className="text-2xl font-bold mt-3">{t("village")} {plot.village}</h3>}
+      <div className={farmer ? "text-xl font-bold mt-3" : "text-sm"} style={farmer ? undefined : { color: "var(--muted)" }}>{plot.taluka ? `${plot.taluka} · ` : ""}{plot.id}</div>
       <div className="card p-4 mt-3 flex items-center gap-3" style={{ borderColor: lv.color, borderWidth: 2 }}>
         <i style={{ background: lv.color, width: 20, height: 20, borderRadius: 99, display: "inline-block", flexShrink: 0 }} />
         <b className="text-xl">{t(`off_${plot.level}`)}</b>
