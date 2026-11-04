@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { api } from "@/api";
+import { useT } from "@/lib/i18n";
 
 const SIZE = 480;                       // canvas pixels; shown responsively
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
@@ -12,7 +13,8 @@ const range = (dates) => (dates?.length ? (dates.length === 1 ? dayMonth(dates[0
  * Before and after, same place: a plain swipe slider over pre-rendered satellite pictures.
  * Default is "Compare years" (a typical ordinary year against 2026, same time of year), which removes ordinary ripening from the comparison.
  */
-export default function PictureCompare({ plot }) {
+export default function PictureCompare({ plot, simple = false }) {
+  const { t } = useT();
   const [meta, setMeta] = useState(undefined);        // undefined = loading, null = not rendered
   const [imgs, setImgs] = useState({});
   const [mode, setMode] = useState("years");
@@ -59,8 +61,8 @@ export default function PictureCompare({ plot }) {
 
   const [L, R] = pair;
   const fl = meta.frames[L], fr = meta.frames[R];
-  const labelL = mode === "years" ? `A typical year (${fl?.year}), ${range(fl?.dates)}` : `2026, ${range(fl?.dates)}`;
-  const labelR = `2026, ${range(fr?.dates)}`;
+  const labelL = simple ? t("normalYear") : mode === "years" ? `A typical year (${fl?.year}), ${range(fl?.dates)}` : `2026, ${range(fl?.dates)}`;
+  const labelR = simple ? t("thisYear") : `2026, ${range(fr?.dates)}`;
   const move = (e) => {
     if (e.buttons !== 1 && e.pointerType === "mouse") return;
     const r = box.current.getBoundingClientRect();
@@ -70,13 +72,13 @@ export default function PictureCompare({ plot }) {
   return (
     <div className="card p-3 mt-4">
       <div className="flex items-center gap-2 flex-wrap">
-        <b className="text-sm">Before and after</b>
-        <div className="ml-auto flex gap-1" role="group" aria-label="What to compare">
+        {!simple && <b className="text-sm">Before and after</b>}
+        {!simple && <div className="ml-auto flex gap-1" role="group" aria-label="What to compare">
           <button className="chip" aria-pressed={mode === "years"} onClick={() => setMode("years")}
             style={{ background: mode === "years" ? "var(--leaf)" : "transparent", color: mode === "years" ? "#12170e" : "var(--text)" }}>Compare years</button>
           {hasDates && <button className="chip" aria-pressed={mode === "dates"} onClick={() => setMode("dates")}
             style={{ background: mode === "dates" ? "var(--leaf)" : "transparent", color: mode === "dates" ? "#12170e" : "var(--text)" }}>Compare dates</button>}
-        </div>
+        </div>}
       </div>
 
       <div ref={box} className="relative mt-2 rounded-lg overflow-hidden select-none" style={{ touchAction: "pan-y", cursor: "ew-resize", border: "1px solid var(--line)" }}
@@ -85,18 +87,19 @@ export default function PictureCompare({ plot }) {
         <canvas ref={right} width={SIZE} height={SIZE} style={{ width: "100%", aspectRatio: "1 / 1", display: "block", position: "absolute", inset: 0, clipPath: `inset(0 0 0 ${pos}%)` }} />
         <div style={{ position: "absolute", top: 0, bottom: 0, left: `${pos}%`, width: 2, background: "#fff", boxShadow: "0 0 0 1px rgba(0,0,0,.4)" }} />
         <div style={{ position: "absolute", left: `${pos}%`, top: "50%", width: 30, height: 30, marginLeft: -15, marginTop: -15, borderRadius: 99, background: "#fff", color: "#12170e", display: "grid", placeItems: "center", fontSize: 14, boxShadow: "0 1px 4px rgba(0,0,0,.5)" }} aria-hidden="true">↔</div>
-        <span className="absolute left-2 top-2 text-[11px] px-2 py-0.5 rounded" style={{ background: "rgba(255,255,255,.92)", color: "#2c2c2a", maxWidth: "45%" }}>{labelL}</span>
-        <span className="absolute right-2 top-2 text-[11px] px-2 py-0.5 rounded text-right" style={{ background: "rgba(255,255,255,.92)", color: "#2c2c2a", maxWidth: "45%" }}>{labelR}</span>
+        <span className={`absolute left-2 top-2 ${simple ? "text-sm font-semibold" : "text-[11px]"} px-2 py-0.5 rounded`} style={{ background: "rgba(255,255,255,.92)", color: "#2c2c2a", maxWidth: "45%" }}>{labelL}</span>
+        <span className={`absolute right-2 top-2 ${simple ? "text-sm font-semibold" : "text-[11px]"} px-2 py-0.5 rounded text-right`} style={{ background: "rgba(255,255,255,.92)", color: "#2c2c2a", maxWidth: "45%" }}>{labelR}</span>
       </div>
       <input type="range" min={0} max={100} step={1} value={pos} onChange={(e) => setPos(Number(e.target.value))} className="w-full mt-2" aria-label="Slide between the two pictures" />
 
+      {simple ? <div className="text-base mt-2" style={{ color: "var(--muted)" }}>{t("compareHint")}</div> : (
       <div className="text-xs mt-1" style={{ color: "var(--muted)" }}>
         {mode === "years"
           ? "Same place and time of year. The left picture is an ordinary, not a dry, year, so what differs is the season, not the calendar."
           : "Both pictures are 2026. Fields also turn brown from ordinary ripening and harvest, so this alone can mislead. Prefer Compare years."}
         {" "}White square: this plot. Each picture blends the clearest passes near its date ({fl?.clear_pct}% and {fr?.clear_pct}% clear; the rest shows the least-bad view).
         Cloud, harvest or ploughing can also change colour: this shows a pattern, not a cause.
-      </div>
+      </div>)}
     </div>
   );
 }

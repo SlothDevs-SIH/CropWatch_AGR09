@@ -30,6 +30,7 @@ export default function TalukaMap({ name, user, onBack, focus }) {
   const [plot, setPlot] = useState(null);
   const [filter, setFilter] = useState(farmer ? "all" : "flagged");
   const [showList, setShowList] = useState(false);
+  const [more, setMore] = useState(false);
   const [bin, setBin] = useState(null);                         // null = live; otherwise the replayed 10-day bin
   const [replayCounts, setReplayCounts] = useState(null);
   const [series, setSeries] = useState(null);
@@ -166,59 +167,60 @@ export default function TalukaMap({ name, user, onBack, focus }) {
   const pctBehind = seen ? Math.round(((shown.urgent + shown.watch) / seen) * 100) : null;
   const sliderBin = bin ?? BIN_COUNT - 1;
 
+  const word = (k) => (farmer ? t(k) : t(`off_${k}`));
+  const shownList = list.slice(0, more ? 250 : 30);
+  const listTitle = filter === "flagged" ? t("visitFirst") : filter === "all" ? t("allFarmland") : word(filter);
+
   const listPane = (
     <>
       <div className="p-4 border-b" style={{ borderColor: "var(--line)" }}>
-        {onBack && <button className="text-sm mb-2" style={{ color: "var(--muted)" }} onClick={onBack}>← {t("district")}</button>}
-        <h2 className="text-xl font-bold">{sum.parent_taluka || name} {farmer ? `· ${t("yourPlots")}` : ""}</h2>
-        <div className="text-xs" style={{ color: "var(--muted)" }}>
-          {whole ? "Whole taluka" : "4 km sample box"} · {t("asOf")} {sum.as_of} · {farm.length.toLocaleString()} cells of {sum.cell_m || 200} m
-        </div>
-        {!farmer && sum.usual_share_median != null && (
-          <div className="text-xs mt-1" style={{ color: sum.exceeds_every_ordinary_season ? "var(--leaf)" : "var(--muted)" }}>
-            {t("usualForDate")}: {Math.round(sum.usual_share_median * 100)}% · now {Math.round((sum.share_at_compare_date ?? sum.stress_share) * 100)}%{sum.exceeds_every_ordinary_season ? ` · ${t("higherThanAny")}` : ""}
+        {onBack && <button className="btn mb-3 text-base" style={{ padding: "8px 14px" }} onClick={onBack}>← {t("district")}</button>}
+        <h2 className="text-2xl font-bold">{sum.parent_taluka || name}</h2>
+        {!farmer && pctBehind != null && (
+          <div className="mt-3">
+            <div className="flex items-baseline gap-2">
+              <b style={{ fontSize: "2.6rem", lineHeight: 1, color: pctBehind >= 30 ? LEVELS.urgent.color : pctBehind >= 10 ? LEVELS.watch.color : LEVELS.normal.color }}>{pctBehind}%</b>
+              <span className="text-lg leading-tight">{t("fieldsBehind")}</span>
+            </div>
+            <div className="text-sm mt-1" style={{ color: "var(--muted)" }}>{t("updated")} {sum.as_of}{bin != null ? ` · ${binDate(bin, true)}` : ""}</div>
           </div>
         )}
-        <div className="grid grid-cols-4 gap-2 mt-3 text-center">
+        <div className="grid grid-cols-2 gap-2 mt-4">
           {["urgent", "watch", "normal", "cannot_see"].map((k) => (
-            <div key={k} className="card py-2">
-              <b className="text-lg" style={{ color: LEVELS[k].color }}>{shown[k].toLocaleString()}</b>
-              <div className="text-[11px]" style={{ color: "var(--muted)" }}>{t(k)}</div>
-            </div>
-          ))}
-        </div>
-        {!farmer && pctBehind != null && <div className="text-sm mt-3"><b>{pctBehind}%</b> of visible farmland is {t("behindNormal")}{bin != null ? ` (${binDate(bin, true)})` : ""}</div>}
-        <div className="flex flex-wrap gap-1 mt-3">
-          {FILTERS.filter((k) => !farmer || k === "all").map((k) => (
-            <button key={k} className="chip" onClick={() => setFilter(k)} style={{ background: filter === k ? "var(--leaf)" : "transparent", color: filter === k ? "#12170e" : "var(--text)" }}>
-              {k === "flagged" ? t("visitFirst") : k === "all" ? t("allFarmland") : t(k)}
+            <button key={k} onClick={() => { setFilter(filter === k ? "flagged" : k); setMore(false); }} className="card py-3 px-3 text-left"
+              style={{ borderColor: filter === k ? "var(--leaf)" : LEVELS[k].color, borderWidth: filter === k ? 3 : 1 }}>
+              <b className="text-2xl block leading-none" style={{ color: LEVELS[k].color }}>{shown[k].toLocaleString()}</b>
+              <span className="text-base block mt-1">{word(k)}</span>
             </button>
           ))}
         </div>
       </div>
+      <div className="px-4 pt-3 text-lg font-semibold">{listTitle}</div>
       <div className="flex-1 overflow-auto scroll-thin p-3 flex flex-col gap-2">
-        {list.slice(0, 250).map((f) => {
+        {shownList.map((f) => {
           const p = f.properties, lv = LEVELS[p.level], sk = p.status === "reported" ? "status_reported" : p.status;
           return (
-            <button key={p.id} onClick={() => pick(p.id)} className="card p-2 text-left" style={{ borderColor: sel === p.id ? "var(--leaf)" : undefined }}>
-              <div className="flex items-center gap-2">
-                <i style={{ background: lv.color, width: 10, height: 10, borderRadius: 99, display: "inline-block" }} />
-                <b className="text-sm">{p.id}</b>
-                <span className="text-xs" style={{ color: "var(--muted)" }}>{t(p.level)}{p.deviation != null && ` · ${p.deviation.toFixed(2)}`}</span>
-                {p.status !== "none" && <span className="chip ml-auto">{t(sk)}</span>}
+            <button key={p.id} onClick={() => pick(p.id)} className="card p-3 text-left" style={{ borderColor: sel === p.id ? "var(--leaf)" : undefined, borderWidth: sel === p.id ? 3 : 1, minHeight: 56 }}>
+              <div className="flex items-center gap-3">
+                <i style={{ background: lv.color, width: 16, height: 16, borderRadius: 99, display: "inline-block", flexShrink: 0 }} />
+                <div className="min-w-0">
+                  <b className="text-lg block leading-tight" style={{ color: lv.color }}>{word(p.level)}</b>
+                  <span className="text-sm block break-all" style={{ color: "var(--muted)" }}>{p.id}</span>
+                </div>
+                {p.status !== "none" && <span className="chip ml-auto text-sm text-center">{t(sk)}</span>}
               </div>
             </button>
           );
         })}
-        {list.length === 0 && <div className="text-sm p-2" style={{ color: "var(--muted)" }}>{t("noPlots")}</div>}
-        {list.length > 250 && <div className="text-xs p-2" style={{ color: "var(--muted)" }}>Showing the 250 most behind normal of {list.length.toLocaleString()}.</div>}
+        {list.length === 0 && <div className="text-base p-2" style={{ color: "var(--muted)" }}>{t("noPlots")}</div>}
+        {!more && list.length > 30 && <button className="btn text-base" style={{ padding: "12px" }} onClick={() => setMore(true)}>{t("showMore")} ({list.length - 30})</button>}
       </div>
     </>
   );
 
   return (
     <div className="h-full flex relative">
-      <aside className="hidden lg:flex w-[340px] shrink-0 border-r flex-col min-h-0" style={{ borderColor: "var(--line)", background: "var(--panel)" }}>{listPane}</aside>
+      <aside className="hidden lg:flex w-[360px] shrink-0 border-r flex-col min-h-0" style={{ borderColor: "var(--line)", background: "var(--panel)" }}>{listPane}</aside>
 
       <div className="flex-1 relative min-w-0">
         <div className="absolute inset-0"><div ref={box} style={{ width: "100%", height: "100%" }} /></div>
@@ -253,7 +255,7 @@ export default function TalukaMap({ name, user, onBack, focus }) {
         )}
         <div className="absolute left-3 top-14 lg:top-3 lg:left-auto lg:right-3 card px-3 py-2 text-xs hidden sm:flex gap-3" style={{ color: "var(--muted)" }}>
           {["urgent", "watch", "normal", "cannot_see"].map((k) => (
-            <span key={k} className="flex items-center gap-1"><i style={{ background: LEVELS[k].color, width: 9, height: 9, borderRadius: 99, display: "inline-block" }} />{t(k)}</span>
+            <span key={k} className="flex items-center gap-1 text-sm"><i style={{ background: LEVELS[k].color, width: 12, height: 12, borderRadius: 99, display: "inline-block" }} />{word(k)}</span>
           ))}
         </div>
       </div>

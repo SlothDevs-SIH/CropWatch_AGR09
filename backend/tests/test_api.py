@@ -253,3 +253,22 @@ def test_imagery_endpoint_and_plot_position(client, tmp_path, monkeypatch):
     p = client.get(f"/api/plots/{pid}", headers=h).json()
     lon, lat = p["centre"]
     assert 76.0 < lon < 76.5 and 19.2 < lat < 19.8 and p["cell_m"] == 300                  # inside Partur, with the whole-taluka cell size
+
+
+def test_farmer_asks_and_officer_answers(client):
+    farmer = auth(client, "farmer1@partur.demo")
+    other = auth(client, "farmer2@partur.demo")
+    assert client.post("/api/support", json={"text": "   "}, headers=farmer).status_code == 400
+    assert client.post("/api/support", json={"text": "Why does it say cannot see?"}, headers=farmer).status_code == 200
+    mine = client.get("/api/support/mine", headers=farmer).json()
+    assert mine[0]["text"].startswith("Why") and mine[0]["answer"] is None
+    assert client.get("/api/support", headers=farmer).status_code == 403            # a farmer cannot read everyone's questions
+    assert client.get("/api/support/mine", headers=other).json() == []               # and one farmer never sees another's
+    officer = auth(client, "taluka.partur@jalna.demo")
+    assert client.get("/api/support", headers=auth(client, "taluka.jalna@jalna.demo")).json() == []   # another taluka's officer sees nothing of it
+    admin = auth(client, "admin@cropwatch.demo")
+    inbox = client.get("/api/support", headers=admin).json()
+    qid = inbox[0]["id"]
+    assert client.post(f"/api/support/{qid}/answer", json={"text": "Clouds hid the view."}, headers=farmer).status_code == 403
+    assert client.post(f"/api/support/{qid}/answer", json={"text": "Clouds hid the view."}, headers=officer).status_code == 200
+    assert client.get("/api/support/mine", headers=farmer).json()[0]["answer"] == "Clouds hid the view."

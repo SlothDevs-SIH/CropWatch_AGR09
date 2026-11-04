@@ -76,71 +76,45 @@ export default function District() {
   if (err) return <div className="p-8" style={{ color: "var(--rust)" }}>{err}</div>;
   if (!data) return <div className="p-8" style={{ color: "var(--muted)" }}>{t("loading")}</div>;
 
-  const covered = data.talukas.reduce((a, x) => a + (x.farmland_cells || 0), 0);
-  const unusual = data.talukas.filter((x) => x.exceeds_every_ordinary_season).length;
+  const seriousBand = (e) => (e == null ? "dist_watch" : e < 0.1 ? "dist_fine" : e < 0.3 ? "dist_watch" : "dist_serious");
   const list = (
     <>
-      <h2 className="text-xl font-bold">Jalna district: which taluka needs attention first</h2>
-      <p className="text-xs mt-1" style={{ color: "var(--muted)" }}>{data.note}</p>
-      <div className="grid grid-cols-3 gap-2 mt-3 text-center">
-        {[[covered.toLocaleString(), "farmland cells"], [`${unusual} of ${data.talukas.length}`, "above any past season"], [reported.length, t("reported")]].map(([n, l]) => (
-          <div key={l} className="card py-2"><b className="text-lg">{n}</b><div className="text-[11px]" style={{ color: "var(--muted)" }}>{l}</div></div>
-        ))}
-      </div>
-      <div className="mt-3 flex gap-2">
-        <button className="btn text-sm flex-1" onClick={download}>Download ranking (CSV)</button>
-        <button className="btn text-sm flex-1" onClick={() => go("/app/reported")}>{t("reported")} ({reported.length})</button>
-      </div>
+      <h2 className="text-2xl font-bold">{t("district")}: Jalna</h2>
+      <p className="text-base mt-1" style={{ color: "var(--muted)" }}>Talukas that need help first are at the top.</p>
+      <button className="btn w-full mt-3 text-lg" style={{ padding: "14px" }} onClick={() => go("/app/reported")}>{t("reported")} ({reported.length})</button>
       <div className="mt-4 flex flex-col gap-3">
         {data.talukas.map((x) => {
-          const parent = x.parent_taluka || x.taluka;
+          const parent = x.parent_taluka || x.taluka, share = x.share_at_compare_date ?? x.stress_share ?? 0, col = excessColor(x.excess_over_usual);
           return (
-            <button key={x.taluka} onClick={() => go(`/app/area/${x.taluka}`)} className="card p-3 text-left slide-in" style={{ borderColor: hover === parent ? "var(--leaf)" : undefined }}>
-              <div className="flex items-center gap-2 flex-wrap">
-                <b className="text-lg">{x.rank}</b><b>{parent}</b>
-                <span className="chip" style={{ color: "var(--muted)" }}>{x.kind === "whole_taluka" ? "whole taluka" : "4 km sample, ranked like for like"}</span>
-                {x.low_confidence && <span className="chip" style={{ color: "var(--ochre)" }}>Low confidence</span>}
-                {x.reported > 0 && <span className="chip" style={{ color: "var(--rust)" }}>{x.reported} {t("reported").toLowerCase()}</span>}
+            <button key={x.taluka} onClick={() => go(`/app/area/${x.taluka}`)} className="card p-4 text-left slide-in" style={{ borderColor: hover === parent ? "var(--leaf)" : col, borderWidth: hover === parent ? 3 : 2 }}>
+              <div className="flex items-center gap-3">
+                <b className="text-3xl" style={{ color: col, minWidth: 28 }}>{x.rank}</b>
+                <b className="text-xl">{parent}</b>
+                <span className="chip ml-auto text-base" style={{ color: col, borderColor: col }}>{t(seriousBand(x.excess_over_usual))}</span>
               </div>
-              <div className="mt-2 text-sm">
-                <b style={{ color: excessColor(x.excess_over_usual) }}>{pct(x.share_at_compare_date ?? x.stress_share)}</b> of visible farmland is {t("behindNormal")}
+              <div className="mt-3 text-lg"><b style={{ color: col }}>{pct(share)}</b> {t("fieldsBehind")}</div>
+              <div className="mt-2 h-3 rounded-full overflow-hidden" style={{ background: "var(--panel-2)" }}>
+                <div style={{ width: `${Math.min(100, share * 100)}%`, height: "100%", background: col }} />
               </div>
-              <div className="text-xs mt-1" style={{ color: x.exceeds_every_ordinary_season ? "var(--leaf)" : "var(--muted)" }}>
-                {t("usualForDate")}: {pct(x.usual_share_median)} (highest in past seasons {pct(x.usual_share_max)}){x.exceeds_every_ordinary_season ? ` · ${t("higherThanAny")}` : ""}
-              </div>
-              {x.whole_taluka && (
-                <div className="mt-2 text-xs card p-2" style={{ background: "var(--panel-2)" }}>
-                  <b>Whole taluka ({x.whole_taluka.farmland_cells.toLocaleString()} cells):</b> {pct(x.whole_taluka.share_at_compare_date ?? x.whole_taluka.stress_share)} flagged,
-                  {" "}the 4 km box said {pct(x.share_at_compare_date ?? x.stress_share)}.{" "}
-                  <span role="link" tabIndex={0} className="underline" style={{ color: "var(--leaf)" }}
-                    onClick={(e) => { e.stopPropagation(); go(`/app/area/${x.whole_taluka.taluka}`); }}
-                    onKeyDown={(e) => { if (e.key === "Enter") { e.stopPropagation(); go(`/app/area/${x.whole_taluka.taluka}`); } }}>Open the whole taluka</span>
-                </div>
-              )}
-              <div className="mt-2 h-2 rounded-full overflow-hidden" style={{ background: "var(--panel-2)" }}>
-                <div style={{ width: `${Math.min(100, (x.share_at_compare_date ?? x.stress_share ?? 0) * 100)}%`, height: "100%", background: excessColor(x.excess_over_usual) }} />
-              </div>
-              <div className="mt-2 text-xs" style={{ color: "var(--muted)" }}>
-                {t("couldNotSee")} {pct(x.cannot_see_share)} · {(x.farmland_cells || 0).toLocaleString()} cells · {t("asOf")} {x.as_of}
-              </div>
+              {x.reported > 0 && <div className="mt-2 text-base" style={{ color: "var(--rust)" }}>{x.reported} {t("reported").toLowerCase()}</div>}
             </button>
           );
         })}
       </div>
+      <button className="text-sm underline mt-5" style={{ color: "var(--muted)" }} onClick={download}>Download the ranking (CSV)</button>
     </>
   );
 
   return (
     <div className="h-full flex relative">
-      <aside className="hidden lg:block w-[400px] shrink-0 border-r overflow-auto scroll-thin p-4" style={{ borderColor: "var(--line)", background: "var(--panel)" }}>{list}</aside>
+      <aside className="hidden lg:block w-[420px] shrink-0 border-r overflow-auto scroll-thin p-4" style={{ borderColor: "var(--line)", background: "var(--panel)" }}>{list}</aside>
       <div className="flex-1 relative min-w-0">
         <div className="absolute inset-0"><div ref={box} style={{ width: "100%", height: "100%" }} /></div>
         <button className="btn absolute left-3 top-3 lg:hidden" onClick={() => setShowList(true)}>☰ Ranking</button>
         <div className="absolute left-3 bottom-3 card p-3 text-xs flex gap-3 flex-wrap" style={{ color: "var(--muted)", background: "rgba(24,31,20,.92)" }}>
-          {[["#7bb241", "usual"], ["#e5a823", "unusual"], ["#d14a30", "very unusual"], ["#8f988a", "no data"]].map(([c, l]) => (
-            <span key={l} className="flex items-center gap-1"><i style={{ background: c, width: 10, height: 10, borderRadius: 99, display: "inline-block" }} />{l}</span>
+          {[["#7bb241", "dist_fine"], ["#e5a823", "dist_watch"], ["#d14a30", "dist_serious"]].map(([c, l]) => (
+            <span key={l} className="flex items-center gap-1 text-sm"><i style={{ background: c, width: 12, height: 12, borderRadius: 99, display: "inline-block" }} />{t(l)}</span>
           ))}
-          <span>colour: how much more is flagged than usual for this date</span>
         </div>
       </div>
       {showList && (

@@ -6,7 +6,7 @@ import { useT } from "@/lib/i18n";
 const CHOICES = ["stressed", "fine", "not_sure"];
 
 /** Stressed / Fine / Not sure, with an optional photo and note. The answer works with no signal; a photo needs a connection. */
-export default function CheckForm({ plotId, title, onDone, big = false }) {
+export default function CheckForm({ plotId, title, onDone, big = false, labels = null }) {
   const { t } = useT();
   const [note, setNote] = useState("");
   const [file, setFile] = useState(null);
@@ -30,7 +30,7 @@ export default function CheckForm({ plotId, title, onDone, big = false }) {
 
   return (
     <div className="card p-3 mt-4">
-      <b className="text-sm">{title}</b>
+      <b className={big ? "text-xl" : "text-sm"}>{title}</b>
       <textarea className="card w-full mt-2 p-2 bg-transparent text-sm" rows={2} placeholder={t("note")} value={note} onChange={(e) => setNote(e.target.value)} />
       <label className="btn mt-2 block text-center text-sm">
         {file ? `📷 ${file.name.slice(0, 22)}` : `📷 ${t("addPhoto")}`}
@@ -38,7 +38,7 @@ export default function CheckForm({ plotId, title, onDone, big = false }) {
       </label>
       <div className={`mt-2 flex gap-2 ${big ? "flex-col" : ""}`}>
         {CHOICES.map((k) => (
-          <button key={k} disabled={busy} onClick={() => send(k)} className="btn flex-1" style={big ? { padding: "16px", fontSize: "1.05rem" } : undefined}>{t(k)}</button>
+          <button key={k} disabled={busy} onClick={() => send(k)} className="btn flex-1" style={big ? { padding: "18px", fontSize: "1.2rem", fontWeight: 600 } : undefined}>{labels?.[k] || t(k)}</button>
         ))}
       </div>
       {msg && <div className="text-sm mt-2" style={{ color: "var(--ochre)" }}>{msg}</div>}

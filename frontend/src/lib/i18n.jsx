@@ -13,6 +13,14 @@ const EN = {
   plotSizedCell: "Plot-sized cell, not a legal survey plot", season: "This season", replay: "Replay the season", asOf: "As of",
   noPlots: "No plots to show.", yourPlots: "Your plots", tapPlot: "Tap a plot to see it and answer.", language: "Language",
   orderDate: "Drought order, 25 Sep", usualForDate: "Usual for this date", higherThanAny: "higher than any past season", couldNotSee: "Could not see",
+  off_urgent: "Visit now", off_watch: "Keep an eye", off_normal: "Fine", off_cannot_see: "Cloud, cannot see",
+  dist_fine: "Fine", dist_watch: "Watch", dist_serious: "Serious",
+  f_normal: "Your crop looks healthy", f_watch: "Your crop is a little behind a normal year", f_urgent: "Your crop is far behind a normal year", f_cannot_see: "Clouds hid your land from the satellite",
+  yourLand: "Your land", field: "Field", normalYear: "A normal year", thisYear: "This year", compareHint: "Slide the line left and right to compare your land.",
+  askCrop: "How is your crop?", f_stressed: "It is in trouble", f_fine: "It is fine", f_not_sure: "I am not sure",
+  helpTitle: "Help and questions", faqTitle: "Common questions", askTitle: "Ask us a question", askPlace: "Write your question here", send: "Send", waiting: "Waiting for an answer", answerLabel: "Answer",
+  getReport: "Get a report to attach to my claim", showMore: "Show more", updated: "Updated", fieldsBehind: "of the fields are behind a normal year",
+  questions: "Questions", moreDetails: "More details", nothingToAnswer: "No questions waiting.", answerBtn: "Send answer", fieldsNeedAnswer: "Please tell us how your crop is.",
 };
 const MR = {
   district: "जिल्हा", accuracy: "अचूकता", about: "माहिती", reported: "कळवलेले", myPlots: "माझे प्लॉट", myTaluka: "माझा तालुका", claimHelp: "दावा मदत", admin: "प्रशासक",
@@ -26,6 +34,14 @@ const MR = {
   plotSizedCell: "प्लॉटच्या आकाराचा चौरस, कायदेशीर सर्व्हे नंबर नाही", season: "या हंगामात", replay: "हंगाम पुन्हा पहा", asOf: "या तारखेपर्यंत",
   noPlots: "दाखवण्यासाठी प्लॉट नाहीत.", yourPlots: "तुमचे प्लॉट", tapPlot: "प्लॉट पाहण्यासाठी आणि उत्तर देण्यासाठी त्यावर दाबा.", language: "भाषा",
   orderDate: "दुष्काळ आदेश, २५ सप्टें.", usualForDate: "या तारखेला नेहमीचे", higherThanAny: "मागील कोणत्याही हंगामापेक्षा जास्त", couldNotSee: "दिसले नाही",
+  off_urgent: "आता भेट द्या", off_watch: "लक्ष ठेवा", off_normal: "ठीक", off_cannot_see: "ढग, दिसत नाही",
+  dist_fine: "ठीक", dist_watch: "लक्ष ठेवा", dist_serious: "गंभीर",
+  f_normal: "तुमचे पीक चांगले दिसत आहे", f_watch: "तुमचे पीक नेहमीपेक्षा थोडे मागे आहे", f_urgent: "तुमचे पीक नेहमीपेक्षा खूप मागे आहे", f_cannot_see: "ढगांमुळे तुमची जमीन उपग्रहाला दिसली नाही",
+  yourLand: "तुमची जमीन", field: "शेत", normalYear: "सामान्य वर्ष", thisYear: "यंदा", compareHint: "तुमच्या जमिनीची तुलना करण्यासाठी रेषा डावीकडे-उजवीकडे सरकवा.",
+  askCrop: "तुमचे पीक कसे आहे?", f_stressed: "अडचणीत आहे", f_fine: "ठीक आहे", f_not_sure: "खात्री नाही",
+  helpTitle: "मदत आणि प्रश्न", faqTitle: "नेहमीचे प्रश्न", askTitle: "आम्हाला प्रश्न विचारा", askPlace: "तुमचा प्रश्न इथे लिहा", send: "पाठवा", waiting: "उत्तराची प्रतीक्षा", answerLabel: "उत्तर",
+  getReport: "माझ्या दाव्यासोबत जोडण्यासाठी अहवाल मिळवा", showMore: "आणखी दाखवा", updated: "अद्ययावत", fieldsBehind: "शेते नेहमीच्या वर्षापेक्षा मागे आहेत",
+  questions: "प्रश्न", moreDetails: "अधिक माहिती", nothingToAnswer: "उत्तर देण्यासाठी प्रश्न नाहीत.", answerBtn: "उत्तर पाठवा", fieldsNeedAnswer: "कृपया तुमचे पीक कसे आहे ते सांगा.",
 };
 
 const Ctx = createContext({ lang: "en", setLang: () => {}, t: (k) => EN[k] || k });

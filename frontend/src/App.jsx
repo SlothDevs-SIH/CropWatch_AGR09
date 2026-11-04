@@ -13,6 +13,7 @@ import Farmer from "@/pages/Farmer";
 import Centre from "@/pages/Centre";
 import Admin from "@/pages/Admin";
 import Reported from "@/pages/Reported";
+import Questions from "@/pages/Questions";
 import About from "@/pages/About";
 
 const homeFor = (u) =>
@@ -21,9 +22,9 @@ const homeFor = (u) =>
       : u.role === "farmer" ? "/app/farmer" : "/app/centre";
 
 const NAV = {
-  district_officer: [["/app/district", "district"], ["/app/reported", "reported"]],
-  admin: [["/app/district", "district"], ["/app/reported", "reported"], ["/app/admin", "admin"]],
-  taluka_officer: [["HOME", "myTaluka"], ["/app/reported", "reported"]],
+  district_officer: [["/app/district", "district"], ["/app/reported", "reported"], ["/app/questions", "questions"]],
+  admin: [["/app/district", "district"], ["/app/reported", "reported"], ["/app/questions", "questions"], ["/app/admin", "admin"]],
+  taluka_officer: [["HOME", "myTaluka"], ["/app/reported", "reported"], ["/app/questions", "questions"]],
   farmer: [["/app/farmer", "myPlots"]],
   centre_operator: [["/app/centre", "claimHelp"]],
 };
@@ -76,7 +77,8 @@ export default function App() {
   const wrongRole =
     (route === "/app/district" && !["district_officer", "admin"].includes(role)) ||
     (route === "/app/admin" && role !== "admin") || (route === "/app/farmer" && role !== "farmer") || (route === "/app/centre" && role !== "centre_operator") ||
-    (route === "/app/reported" && !["district_officer", "admin", "taluka_officer"].includes(role));
+    (route === "/app/reported" && !["district_officer", "admin", "taluka_officer"].includes(role)) ||
+    (route === "/app/questions" && !["district_officer", "admin", "taluka_officer"].includes(role));
   const district = role === "district_officer" || role === "admin";
 
   let page;
@@ -85,6 +87,7 @@ export default function App() {
   else if (route === "/about") page = <About inApp />;
   else if (route === "/app/district") page = <District />;
   else if (route === "/app/reported") page = <Reported />;
+  else if (route === "/app/questions") page = <Questions />;
   else if (route === "/app/admin") page = <Admin />;
   else if (route === "/app/farmer") page = <Farmer user={user} />;
   else if (route === "/app/centre") page = <Centre />;

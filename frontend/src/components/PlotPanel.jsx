@@ -32,19 +32,21 @@ export default function PlotPanel({ plot, user, onChanged, onPrev, onNext, onClo
       <div className="flex items-center gap-2">
         {onPrev && <button className="btn" onClick={onPrev} aria-label="Previous plot">←</button>}
         {onNext && <button className="btn" onClick={onNext} aria-label="Next plot">→</button>}
-        <button className="btn ml-auto" onClick={onClose}>{t("close")}</button>
+        
       </div>
       <h3 className="text-xl font-bold mt-3">{plot.id}</h3>
-      <div className="text-xs" style={{ color: "var(--muted)" }}>{t("plotSizedCell")}</div>
-      <div className="mt-3 flex gap-2 flex-wrap">
-        <span className="chip" style={{ color: lv.color, borderColor: lv.color }}>{t(plot.level)}</span>
-        {plot.status !== "none" && <span className="chip">{t(statusKey)}</span>}
-        {plot.confidence && <span className="chip" style={{ color: "var(--muted)" }}>Confidence: {plot.confidence}</span>}
+      <div className="card p-4 mt-3 flex items-center gap-3" style={{ borderColor: lv.color, borderWidth: 2 }}>
+        <i style={{ background: lv.color, width: 20, height: 20, borderRadius: 99, display: "inline-block", flexShrink: 0 }} />
+        <b className="text-xl">{t(`off_${plot.level}`)}</b>
+        {plot.status !== "none" && <span className="chip ml-auto text-sm">{t(statusKey)}</span>}
       </div>
-      <p className="mt-3 text-sm">{plot.reason}</p>
+      <p className="mt-3 text-base">{plot.reason}</p>
 
-      {plot.centre && <PictureCompare plot={plot} />}
+      {plot.centre && <PictureCompare plot={plot} simple />}
 
+      <details className="card p-3 mt-3">
+        <summary className="text-base font-semibold cursor-pointer">{t("moreDetails")}</summary>
+        {plot.confidence && <div className="text-sm mt-2" style={{ color: "var(--muted)" }}>Confidence: {plot.confidence}</div>}
       {plot.series_2026 && (
         <div className="card p-3 mt-4">
           <div className="text-xs mb-1" style={{ color: "var(--muted)" }}>
@@ -54,9 +56,12 @@ export default function PlotPanel({ plot, user, onChanged, onPrev, onNext, onClo
           <div className="text-xs" style={{ color: "var(--muted)" }}>Gaps in the line are weeks with no clear satellite picture.</div>
         </div>
       )}
-      <div className="card p-3 mt-3"><RainStrip taluka={plot.taluka} /></div>
+      <div className="mt-3"><RainStrip taluka={plot.taluka} /></div>
 
-      {flagged && (farmer || officer) && <CheckForm plotId={plot.id} title={farmer ? t("isStressed") : t("recordVisit")} onDone={onChanged} big={farmer} />}
+        {(officer || farmer) && <button className="btn w-full mt-3 text-sm" onClick={evidence}>Open the evidence pack</button>}
+      </details>
+
+      {flagged && (farmer || officer) && <CheckForm plotId={plot.id} title={farmer ? t("isStressed") : t("recordVisit")} onDone={onChanged} big />}
 
       {officer && flagged && (
         <div className="card p-3 mt-3">
@@ -69,7 +74,6 @@ export default function PlotPanel({ plot, user, onChanged, onPrev, onNext, onClo
           <div className="text-xs mt-1" style={{ color: "var(--muted)" }}>Reporting tells the district office, with the evidence. It does not file a claim.</div>
         </div>
       )}
-      {(officer || farmer) && <button className="btn w-full mt-3 text-sm" onClick={evidence}>Open the evidence pack</button>}
       {msg && <div className="text-sm mt-2" style={{ color: "var(--ochre)" }}>{msg}</div>}
 
       {plot.checks?.length > 0 && (

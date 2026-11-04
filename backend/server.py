@@ -149,6 +149,7 @@ def init_db():
     CREATE TABLE IF NOT EXISTS photos(id INTEGER PRIMARY KEY, plot_id TEXT, path TEXT, by_name TEXT, at TEXT);
     CREATE TABLE IF NOT EXISTS orders(id INTEGER PRIMARY KEY, at TEXT, plot_id TEXT, centre TEXT, fee INTEGER, centre_share INTEGER, simulated INTEGER);
     CREATE TABLE IF NOT EXISTS audit(id INTEGER PRIMARY KEY, at TEXT, who TEXT, role TEXT, action TEXT, detail TEXT);
+    CREATE TABLE IF NOT EXISTS questions(id INTEGER PRIMARY KEY, user_id INTEGER, by_name TEXT, taluka TEXT, text TEXT, at TEXT, answer TEXT, answered_by TEXT, answered_at TEXT);
     """)
     def add(u, role, taluka=None):
         if not c.execute("SELECT 1 FROM users WHERE email=?", (u["email"],)).fetchone():
@@ -723,6 +724,73 @@ def admin_stats(u=Depends(current_user)):
     out = {t: c.execute(f"SELECT COUNT(*) FROM {t}").fetchone()[0] for t in ("users", "checks", "reports", "photos", "orders", "audit")}
     c.close()
     return out
+
+
+
+# ---------- help and support: a farmer asks, an officer or admin answers ----------
+class Question(BaseModel):
+    text: str
+
+
+class Answer(BaseModel):
+    text: str
+
+
+def _support_row(r) -> dict:
+    return {"id": r["id"], "by": r["by_name"], "taluka": r["taluka"], "text": r["text"], "at": r["at"],
+            "answer": r["answer"], "answered_by": r["answered_by"], "answered_at": r["answered_at"]}
+
+
+@app.post("/api/support")
+def ask_question(b: Question, u=Depends(current_user)):
+    text = b.text.strip()
+    if not text:
+        raise HTTPException(400, "Please write your question")
+    c = db()
+    if c.execute("SELECT COUNT(*) FROM questions WHERE user_id=? AND answer IS NULL", (u["id"],)).fetchone()[0] >= 10:
+        c.close(); raise HTTPException(429, "You already have 10 questions waiting. Please wait for an answer.")
+    c.execute("INSERT INTO questions(user_id,by_name,taluka,text,at) VALUES(?,?,?,?,datetime('now'))", (u["id"], u["name"], u["taluka"], text[:500]))
+    c.commit(); c.close()
+    audit(u["email"], u["role"], "question", "asked")
+    return {"ok": True}
+
+
+@app.get("/api/support/mine")
+def my_questions(u=Depends(current_user)):
+    c = db(); rows = c.execute("SELECT * FROM questions WHERE user_id=? ORDER BY id DESC LIMIT 30", (u["id"],)).fetchall(); c.close()
+    return [_support_row(r) for r in rows]
+
+
+def _can_answer(u):
+    if u["role"] not in ("admin", "district_officer", "taluka_officer"):
+        raise HTTPException(403, "Only officers and admins answer questions")
+
+
+@app.get("/api/support")
+def list_questions(u=Depends(current_user)):
+    _can_answer(u)
+    c = db()
+    if u["role"] == "taluka_officer":
+        rows = c.execute("SELECT * FROM questions WHERE taluka=? ORDER BY (answer IS NOT NULL), id DESC LIMIT 100", (u["taluka"],)).fetchall()
+    else:
+        rows = c.execute("SELECT * FROM questions ORDER BY (answer IS NOT NULL), id DESC LIMIT 100").fetchall()
+    c.close()
+    return [_support_row(r) for r in rows]
+
+
+@app.post("/api/support/{qid}/answer")
+def answer_question(qid: int, b: Answer, u=Depends(current_user)):
+    _can_answer(u)
+    text = b.text.strip()
+    if not text:
+        raise HTTPException(400, "Please write an answer")
+    c = db(); q = c.execute("SELECT * FROM questions WHERE id=?", (qid,)).fetchone()
+    if not q or (u["role"] == "taluka_officer" and q["taluka"] != u["taluka"]):
+        c.close(); raise HTTPException(404, "No such question")
+    c.execute("UPDATE questions SET answer=?, answered_by=?, answered_at=datetime('now') WHERE id=?", (text[:800], u["name"], qid))
+    c.commit(); c.close()
+    audit(u["email"], u["role"], "answer", f"question {qid}")
+    return {"ok": True}
 
 
 # ---------- pictures (open Sentinel-2 data, so no sign-in is needed for the image files) ----------

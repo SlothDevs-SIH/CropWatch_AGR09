@@ -4,7 +4,7 @@ An honest audit of Crop Watch as of 4 November 2026. "Checked" says exactly how 
 
 ## How it was checked
 
-- **39 automated tests, all passing:** 9 on the analysis maths, 16 on the web service and its access rules, 8 on the picture renderer, 5 on the field-check evaluator, 1 on database backups. (`backend/tests`, run with `pytest`.)
+- **40 automated tests, all passing:** 9 on the analysis maths, 17 on the web service and its access rules, 8 on the picture renderer, 5 on the field-check evaluator, 1 on database backups. (`backend/tests`, run with `pytest`.)
 - **By hand in a real browser** (the app's built-in browser pane, phone-sized and desktop): sign-in as each of the five roles, the district map, the whole-taluka map with the season replay, a plot opened from a link, the farmer screen in English and Marathi, the service-centre and admin screens, and the before/after slider.
 - **Speed and size:** whole-taluka maps are 0.2 to 0.3 MB on the wire (3 MB uncompressed) and open in about 2 seconds; the server uses about 190 MB; the server log showed no errors.
 - **Not checked at all:** a real phone, the network switched off, a screen reader, other browsers, the Docker image, the Marathi by a native speaker.
@@ -52,7 +52,8 @@ An honest audit of Crop Watch as of 4 November 2026. "Checked" says exactly how 
 | Season replay slider | **Works** | Recolours week by week, with the 25 September mark. It re-implements the backend rule in the browser, and no test checks the two stay in step |
 | Plot panel (chart, rain, photo, history, report) | **Works** | Demo data only |
 | Before/after picture slider | **Built, pictures rendering** | "Compare years" is the default; "Compare dates" appears only when both pictures are at least 60% clear |
-| Farmer screen | **Works in a browser** | Not tried on a real phone |
+| Farmer screen | **Works in a browser** | Rebuilt 4 Nov for ease of use: only their land, a plain sentence, a before/after slider, three big answer buttons, and a Help section (common questions and ask-a-question). No graphs or numbers. Not tried on a real phone |
+| Officer screens | **Simplified 4 Nov** | Map side panel: one big sentence, four large tap tiles (Visit now, Keep an eye, Fine, Cloud), a short visit-first list. Chart and rain moved under "More details". District page: ranked cards with Fine / Watch / Serious. New Questions page to answer farmers |
 | Service-centre and admin screens | **Works** | |
 | Marathi | **Works, unreviewed** | Written without a native speaker |
 | Offline shell and check queue | **Not verified** | The built-in browser pane cannot register a service worker, so this could not be tested. The code is there |
