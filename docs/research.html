@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Crop Watch: Research</title>
+<style>
+:root{--bg:#11160e;--panel:#181f14;--line:#33402a;--leaf:#a9c75a;--wheat:#e9d8a6;--ochre:#e5a823;--rust:#d14a30;--sage:#8f988a;--text:#f1ebdd;--muted:#a3ab94}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font:16px/1.6 "Segoe UI",system-ui,sans-serif}
+main{max-width:980px;margin:0 auto;padding:32px 16px 80px}
+h1,h2,h3{font-family:Georgia,serif;font-weight:600;line-height:1.2}
+h1{font-size:2.2rem;margin:.2em 0}h2{font-size:1.5rem;margin:2.2em 0 .5em;color:var(--wheat)}h3{font-size:1.1rem;margin:1.4em 0 .3em;color:var(--leaf)}
+p,li{max-width:75ch}a{color:var(--leaf)}
+.lede{color:var(--muted);font-size:1.1rem}
+nav{display:flex;gap:14px;flex-wrap:wrap;font-size:.9rem;margin-bottom:8px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px 16px;margin:14px 0}
+.note{border-left:4px solid var(--ochre)}.warn{border-left:4px solid var(--rust)}.ok{border-left:4px solid var(--leaf)}
+table{width:100%;border-collapse:collapse;font-size:.92rem;margin:12px 0}
+th,td{border-bottom:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top}
+th{color:var(--wheat);font-weight:600}
+.tablewrap{overflow-x:auto}
+code{background:#1f2819;padding:1px 6px;border-radius:4px;font-size:.88em}
+.big{font-family:Georgia,serif;font-size:2rem;color:var(--leaf);line-height:1}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin:14px 0}
+.stats .card{margin:0}.stats small{display:block;color:var(--muted);margin-top:6px}
+footer{margin-top:48px;color:var(--muted);font-size:.85rem}
+</style>
+</head>
+<body>
+<main>
+<nav><a href="research.html"><b>Research</b></a><a href="data.html">Data</a><a href="backend.html">Back end</a><a href="frontend.html">Front end</a></nav>
+<h1>Research: why we are building Crop Watch</h1>
+<p class="lede">Problem statement AGR-09: <i>village-scale crop stress early warning from satellite imagery</i>. This page explains what is happening in Maharashtra now, why a tool like this is needed, what already exists, and what we learned by building and testing it. Last updated 4 November 2026.</p>
+
+<div class="card note"><b>Read this first: how to treat the figures.</b> Numbers marked <i>(as reported)</i> were gathered from news and official reporting during our research. We did not audit them ourselves. Check them against the original source before putting any on a slide. Numbers marked <i>(our measurement)</i> come from our own files and tests. Scripts and notes: <code>AGR09_PROJECT_PLAN.md</code>, <code>validation/KNOWN_EVENT.md</code>.</div>
+
+<h2>1. What is happening right now</h2>
+<h3>The 2026 Kharif drought in Marathwada</h3>
+<ul>
+<li>The 2026 monsoon brought a widespread rain deficit across Maharashtra, hardest in Marathwada, where Jalna lies. The state formally declared drought in late September, with an order on <b>25 September 2026</b> (as reported), and reporting put the declared area at <b>265 talukas</b> (as reported).</li>
+<li>Soybean, the main Kharif crop in Marathwada, was reported to have lost roughly <b>one third of its production</b> (as reported), with pest and disease pressure rising on drought-stressed crops, for example in Nanded (as reported).</li>
+<li>Rainfall in the pilot district: June to October 2026 was <b>about 52% of the 2018 to 2025 average</b> (our measurement, NASA POWER, a coarse grid). This agrees with the roughly 46% deficit reported.</li>
+</ul>
+<h3>It is not a one-off</h3>
+<p>The year before, 2025, the same state faced severe monsoon floods and large crop damage with a big relief response (as reported). Marathwada swings between flood and drought, so a tool built only for one extreme would not be enough.</p>
+<h3>The human cost</h3>
+<p>Marathwada has a long record of farm distress. Reporting counts <b>5,075 farmer suicide deaths between 2021 and 2025</b>, and a sharp rise during 2025 (as reported). We mention this because it is why speed and fairness of relief matter, and we handle the subject with care: Crop Watch does not claim to prevent it.</p>
+
+<h2>2. Why there is a need: the gap in how loss is found today</h2>
+<div class="stats">
+<div class="card"><div class="big">25 Sep</div>the official drought order date<small>our test date</small></div>
+<div class="card"><div class="big">Weeks</div>between crops starting to fail and paper assessment<small>the gap we target</small></div>
+<div class="card"><div class="big">Village</div>the level where relief and insurance decisions land<small>not the district</small></div>
+</div>
+<ul>
+<li><b>Declaration is slow and coarse.</b> Drought declaration follows a formal multi-indicator process (rainfall, crop condition, moisture) and then central verification. The national disaster rules also use a fixed gate date (as reported, early October for Kharif), and verification can lag behind what farmers already see in the field.</li>
+<li><b>Insurance payouts depend on slow, manual measurement.</b> Under the national crop insurance scheme (PMFBY), payouts rely largely on crop-cutting experiments and yield estimates, which have been widely reported as a bottleneck causing delays and disputes over claims (as reported).</li>
+<li><b>Advice does not reach farmers fast.</b> Technical advice reaches only part of farm households and mostly through general channels such as radio, TV and universities, not plot-specific alerts (as reported, national household survey).</li>
+<li><b>Officers cannot visit every village.</b> A taluka agriculture officer has far more villages than visiting days. A ranked "visit first" list is useful even if it only says <i>where</i> the crop looks worst this week.</li>
+</ul>
+<p><b>So the need is not "another map".</b> It is a cheap, repeatable, village-scale comparison with a normal season that officers can use to decide where to send people first, and that farmers can show as supporting evidence.</p>
+
+<h2>3. What the technology can and cannot do</h2>
+<table>
+<tr><th>Can do</th><th>Cannot do</th></tr>
+<tr><td>Compare every farmland plot with what is normal for that crop age, weekly, across a whole district.</td><td>Say <i>why</i> a crop is stressed (drought, pest, late sowing and ripening can look alike).</td></tr>
+<tr><td>Show where 2026 differs from ordinary seasons, with real satellite pictures before and after.</td><td>See single small plots or crop rows (10 to 60 m pixels).</td></tr>
+<tr><td>Be repeated by one command, for free, from open data.</td><td>Predict yield or future rain.</td></tr>
+<tr><td>Say "cannot see" honestly when clouds block the view.</td><td>See through monsoon cloud in some weeks (radar not yet used).</td></tr>
+</table>
+<p>The core measure is <b>NDVI</b>, a standard index of green cover, from the free Sentinel-2 satellites (see the Data page). This is well-established science. The new work is applying it at village scale, aligning for crop age, and <i>testing it honestly</i>.</p>
+
+<h2>4. Why soybean, and why Jalna</h2>
+<table>
+<tr><th>Choice</th><th>Reason</th></tr>
+<tr><td>Soybean, Kharif 2026</td><td>Big even canopy, sharp green-up and green-down, a documented bad year, and the dominant Kharif crop in Marathwada. Cotton is the second choice; sugarcane the backup.</td></tr>
+<tr><td>Jalna district</td><td>Inside the declared drought area, eight talukas, a mix of results, and a visibility test (a chart of 2026 against past seasons) that showed a clear gap before we committed.</td></tr>
+</table>
+
+<h2>5. What we found (our measurement, honestly)</h2>
+<p>Share of visible farmland flagged at the 25 September order date, whole talukas, against ordinary seasons 2019 to 2025:</p>
+<div class="tablewrap"><table>
+<tr><th>Taluka</th><th>2026</th><th>Ordinary range</th></tr>
+<tr><td>Mantha</td><td>55%</td><td>4% to 11%</td></tr><tr><td>Jalna</td><td>49%</td><td>3% to 7%</td></tr>
+<tr><td>Partur</td><td>47%</td><td>2% to 9%</td></tr><tr><td>Ghansawangi</td><td>44%</td><td>2% to 7%</td></tr>
+<tr><td>Ambad</td><td>33%</td><td>1% to 6%</td></tr><tr><td>Badnapur</td><td>28%</td><td>3% to 14%</td></tr>
+<tr><td>Bhokardan</td><td>24%</td><td>3% to 20%</td></tr><tr><td>Jafrabad</td><td>11%</td><td>3% to 10% (marginal)</td></tr>
+</table></div>
+<div class="card ok"><b>What this supports.</b> In all eight whole talukas, 2026 sits above every ordinary season at the order date (Jafrabad only marginally). Our rule also beats a simple "less green than last reading" rule, which cannot see this drought at all. Thresholds were tuned without 2026 and then frozen.</div>
+<div class="card warn"><b>What this does not support.</b><ul>
+<li><b>No early warning.</b> The signal first stood out 4 to 14 days <i>after</i> the order (and not at all before it in Bhokardan and Jafrabad). We can show <i>where</i>, at about the time of the order, not <i>earlier</i>. An earlier statement of "+16 days lead" was an artefact of a badly placed sample box and was withdrawn.</li>
+<li><b>Nothing is confirmed on the ground.</b> No plot has been visited. A sealed, blind 40-plot field sample and the field kit are ready; the visits are the single most important next step.</li>
+<li>A 4 km box misleads in both directions, so we moved to whole talukas.</li></ul></div>
+
+<h2>6. What already exists, and what we borrowed</h2>
+<ul>
+<li><b>T.R.A.C.E.</b> and our earlier <b>GeoAI</b> change-detection project taught us the landing-then-console flow, attention-based lists, a before/after swipe and an offline field workflow. We took ideas only. We wrote our own code, because T.R.A.C.E. has no licence file. See <code>docs/TRACE_NOTES.md</code>.</li>
+<li>Government and commercial crop-monitoring programmes also use satellites. We have not audited them in detail, so we make no claim to be first. Our contribution is a plot-level, open-data, fully testable comparison with an honest accuracy page and a field-verification plan.</li>
+</ul>
+
+<h2>7. The pitch, kept honest</h2>
+<ol>
+<li><b>Problem:</b> loss is found late, coarsely and on paper, while farmers and officers need village-level information fast.</li>
+<li><b>Solution:</b> a map and ranked list that show where this season differs from normal, plot by plot, with real before/after satellite pictures.</li>
+<li><b>Proof:</b> eight whole talukas tested against seven past seasons, thresholds frozen, simple baseline beaten, results published with limits.</li>
+<li><b>Limits stated up front:</b> after-the-order timing, no ground truth yet, no cause, no yield.</li>
+<li><b>Business idea:</b> an evidence pack a farmer can attach to a claim, sold through service centres, simulated in the demo and subject to checking the real fee rules.</li>
+</ol>
+
+<h2>8. Open questions and next steps</h2>
+<ul>
+<li>Visit the sealed sample plots and measure how many alerts are confirmed and how many real problems we missed.</li>
+<li>Test whether adding radar (cloud-proof) or rainfall earlier in the season can recover lead time.</li>
+<li>Confirm the real form, fee and permission rules before any money feature is described as real.</li>
+<li>Test on a real phone, with the network off, and have a native Marathi speaker review the text.</li>
+</ul>
+<footer>Crop Watch (AGR-09), Team SlothDevs: Soham, Kaushal, Shreyas, Vedashree. Branch: <code>research</code>.</footer>
+</main>
+</body>
+</html>
