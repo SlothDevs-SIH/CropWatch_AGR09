@@ -2,28 +2,44 @@ import { useEffect, useState } from "react";
 import { api } from "@/api";
 import { useT } from "@/lib/i18n";
 
-const FAQ = {
+// Two groups of questions: about the farmer's own crop, and about officers and relief. Marathi is unreviewed: have a Marathi speaker check it.
+const GROUPS = {
   en: [
-    ["What do the words about my crop mean?", "The satellite compares your land with a normal year at the same time of the season. “Healthy” means it looks like a normal year. “A little behind” or “far behind” means the crop is less green than a normal year."],
-    ["Why does it say clouds hid my land?", "The satellite cannot see through clouds. This is not a problem with your crop. Look again in a few days."],
-    ["Does this mean my crop has failed?", "No. It only shows that your land looks different from a normal year. Late sowing or ripening can also change how it looks. Please tell us what you see with the buttons."],
-    ["What happens when I say my crop is in trouble?", "Your taluka officer sees your answer and can visit. If you can, add a photo."],
-    ["Does this file my insurance claim?", "No. You can get a report to attach to your claim. It does not file the claim and it does not promise any payment."],
-    ["How old are the pictures?", "The satellites pass every few days. The pictures shown are from mid-September: a normal year on one side and this year on the other."],
-    ["Who can see my answers?", "Officers of your taluka and district, and the Crop Watch team."],
+    { title: "About your crop", items: [
+      ["My crop looks fine to me, but the app says it is behind. Who is right?", "You know your field best. The satellite only sees colour from space and compares it with a normal year. Ripening, late sowing or harvest can change the colour. Press “It is fine” and add a photo if you can. Your officer will see both."],
+      ["What should I do first if my crop is drying or damaged?", "Press “It is in trouble” on that field and add a photo taken in daylight from the edge of the field. Do not wait to be asked. If you have crop insurance, also follow your insurer’s own steps and deadlines. This app does not replace them."],
+      ["Why does it say clouds hid my land?", "The satellite cannot see through clouds. This is not a problem with your crop. In the monsoon, clouds can hide the land for weeks. Look again in a few days."],
+      ["Is a field here the same as my survey number?", "No. Each field is a small square of land picked by the satellite map. It may not match your legal survey plot exactly. Your officer can help you match it."],
+      ["How often does the picture change?", "The satellites pass every few days. The pictures shown are from mid-September: a normal year on one side and this year on the other."],
+    ] },
+    { title: "About officers and relief", items: [
+      ["What happens after I press “It is in trouble”?", "Your taluka officer sees your answer on their list and can visit. If the visit confirms it, the officer can report the field to the district office with the evidence."],
+      ["Does this give me insurance or relief money?", "No. It is not a claim and it promises no money. You can get a report to attach to your claim. Government officers decide relief using their own rules. Crop Watch only shows where crops look behind a normal year, so visits start in the right place."],
+      ["Can the officer trust what the app says?", "It shows where this year looks different from ordinary years. It has not yet been checked field by field, and it cannot say why a crop is stressed. A visit is always needed to confirm."],
+      ["Who can see my answers and photos?", "Officers of your taluka and district, and the Crop Watch team. We do not store phone or ID numbers."],
+      ["Can I ask the officer something directly?", "Yes. Write your question in the box below. Your taluka officer or the Crop Watch team will answer it here."],
+    ] },
   ],
   mr: [
-    ["माझ्या पिकाबद्दलचे शब्द काय सांगतात?", "उपग्रह तुमच्या जमिनीची तुलना हंगामाच्या त्याच वेळच्या सामान्य वर्षाशी करतो. “चांगले” म्हणजे सामान्य वर्षासारखे दिसते. “थोडे मागे” किंवा “खूप मागे” म्हणजे पीक सामान्य वर्षापेक्षा कमी हिरवे आहे."],
-    ["ढगांमुळे जमीन दिसली नाही असे का म्हटले आहे?", "उपग्रहाला ढगांच्या आरपार दिसत नाही. ही तुमच्या पिकाची अडचण नाही. काही दिवसांनी पुन्हा पहा."],
-    ["याचा अर्थ माझे पीक वाया गेले असा आहे का?", "नाही. यातून फक्त तुमची जमीन सामान्य वर्षापेक्षा वेगळी दिसते एवढेच कळते. उशिरा पेरणी किंवा पीक पक्व होणे यानेही रंग बदलतो. तुम्हाला काय दिसते ते बटणांनी सांगा."],
-    ["पीक अडचणीत आहे असे सांगितल्यावर काय होते?", "तुमचे तालुका अधिकारी तुमचे उत्तर पाहतात आणि भेट देऊ शकतात. शक्य असल्यास फोटो जोडा."],
-    ["यामुळे माझा विमा दावा दाखल होतो का?", "नाही. तुमच्या दाव्यासोबत जोडण्यासाठी तुम्हाला अहवाल मिळू शकतो. तो दावा दाखल करत नाही आणि कोणत्याही रकमेची हमी देत नाही."],
-    ["चित्रे किती जुनी आहेत?", "उपग्रह काही दिवसांनी जातात. दाखवलेली चित्रे सप्टेंबरच्या मध्याची आहेत: एका बाजूला सामान्य वर्ष आणि दुसऱ्या बाजूला यंदा."],
-    ["माझी उत्तरे कोण पाहू शकते?", "तुमच्या तालुक्याचे आणि जिल्ह्याचे अधिकारी, आणि Crop Watch टीम."],
+    { title: "तुमच्या पिकाबद्दल", items: [
+      ["मला माझे पीक ठीक वाटते, पण अॅप म्हणते ते मागे आहे. कोण बरोबर?", "तुमचे शेत तुम्हालाच चांगले माहीत आहे. उपग्रह फक्त अवकाशातून रंग पाहतो आणि सामान्य वर्षाशी तुलना करतो. पीक पक्व होणे, उशिरा पेरणी किंवा कापणी यामुळे रंग बदलतो. “ठीक आहे” दाबा आणि शक्य असल्यास फोटो जोडा. तुमचे अधिकारी दोन्ही पाहतील."],
+      ["माझे पीक वाळत असेल किंवा खराब झाले असेल तर आधी काय करावे?", "त्या शेतावर “अडचणीत आहे” दाबा आणि शेताच्या कडेवरून दिवसाच्या उजेडात काढलेला फोटो जोडा. विचारण्याची वाट पाहू नका. पीक विमा असेल तर विमा कंपनीचे स्वतःचे टप्पे आणि मुदतही पाळा. हे अॅप त्यांची जागा घेत नाही."],
+      ["ढगांमुळे जमीन दिसली नाही असे का म्हटले आहे?", "उपग्रहाला ढगांच्या आरपार दिसत नाही. ही तुमच्या पिकाची अडचण नाही. पावसाळ्यात ढग आठवडे जमीन झाकू शकतात. काही दिवसांनी पुन्हा पहा."],
+      ["इथले शेत म्हणजे माझा सर्व्हे नंबर आहे का?", "नाही. प्रत्येक शेत म्हणजे उपग्रह नकाशाने निवडलेला जमिनीचा छोटा चौरस आहे. तो तुमच्या कायदेशीर सर्व्हे नंबरशी अगदी जुळेलच असे नाही. जुळवण्यासाठी तुमचे अधिकारी मदत करतील."],
+      ["चित्र किती वेळा बदलते?", "उपग्रह काही दिवसांनी जातात. दाखवलेली चित्रे सप्टेंबरच्या मध्याची आहेत: एका बाजूला सामान्य वर्ष आणि दुसऱ्या बाजूला यंदा."],
+    ] },
+    { title: "अधिकारी आणि मदतीबद्दल", items: [
+      ["“अडचणीत आहे” दाबल्यावर काय होते?", "तुमचे तालुका अधिकारी त्यांच्या यादीत तुमचे उत्तर पाहतात आणि भेट देऊ शकतात. भेटीत पुष्टी झाली तर अधिकारी पुराव्यासह ते शेत जिल्हा कार्यालयाला कळवू शकतात."],
+      ["यातून मला विमा किंवा मदतीचे पैसे मिळतात का?", "नाही. हा दावा नाही आणि यात पैशाची हमी नाही. तुमच्या दाव्यासोबत जोडण्यासाठी तुम्हाला अहवाल मिळू शकतो. मदत कोणाला द्यायची हे सरकारी अधिकारी त्यांच्या नियमांनुसार ठरवतात. Crop Watch फक्त पीक सामान्य वर्षापेक्षा कुठे मागे दिसते ते दाखवते, म्हणजे भेटी योग्य ठिकाणापासून सुरू होतात."],
+      ["अॅप जे सांगते त्यावर अधिकारी विश्वास ठेवू शकतात का?", "हे यंदा सामान्य वर्षांपेक्षा कुठे वेगळे दिसते ते दाखवते. ते अजून शेतात जाऊन तपासलेले नाही आणि पीक ताणात का आहे हे ते सांगू शकत नाही. खात्री करण्यासाठी भेट नेहमी लागते."],
+      ["माझी उत्तरे आणि फोटो कोण पाहू शकते?", "तुमच्या तालुक्याचे आणि जिल्ह्याचे अधिकारी, आणि Crop Watch टीम. आम्ही फोन किंवा ओळख क्रमांक साठवत नाही."],
+      ["मी अधिकाऱ्याला थेट काही विचारू शकतो का?", "हो. खालील चौकटीत तुमचा प्रश्न लिहा. तुमचे तालुका अधिकारी किंवा Crop Watch टीम इथेच उत्तर देईल."],
+    ] },
   ],
 };
+const MY = { en: "Your questions", mr: "तुमचे प्रश्न" };
 
-/** Help for farmers: plain answers to common questions, and a box to ask one of our own. */
+/** Help for farmers, laid out like a ruled notebook: tap a line and the answer opens under it. */
 export default function Help() {
   const { t, lang } = useT();
   const [text, setText] = useState("");
@@ -39,33 +55,39 @@ export default function Help() {
 
   return (
     <section className="mt-10" aria-labelledby="help-h">
-      <h2 id="help-h" className="text-2xl font-bold">{t("helpTitle")}</h2>
+      <h2 id="help-h" className="text-2xl font-bold mb-3">{t("helpTitle")}</h2>
 
-      <h3 className="text-lg font-semibold mt-4">{t("faqTitle")}</h3>
-      <div className="mt-2 flex flex-col gap-2">
-        {(FAQ[lang] || FAQ.en).map(([q, a]) => (
-          <details key={q} className="card p-4">
-            <summary className="text-lg font-semibold cursor-pointer">{q}</summary>
-            <p className="text-base mt-2" style={{ color: "var(--muted)" }}>{a}</p>
-          </details>
+      <div className="nb">
+        {(GROUPS[lang] || GROUPS.en).map((g) => (
+          <div key={g.title}>
+            <h3>{g.title}</h3>
+            {g.items.map(([q, a]) => (
+              <details key={q}>
+                <summary><span>{q}</span></summary>
+                <p className="nb-a">{a}</p>
+              </details>
+            ))}
+          </div>
         ))}
       </div>
 
-      <h3 className="text-lg font-semibold mt-6">{t("askTitle")}</h3>
-      <form onSubmit={send} className="card p-4 mt-2 flex flex-col gap-3">
-        <textarea className="card w-full p-3 bg-transparent text-base" rows={3} maxLength={500} placeholder={t("askPlace")} value={text} onChange={(e) => setText(e.target.value)} required />
-        <button className="btn btn-primary" style={{ padding: "14px", fontSize: "1.1rem" }} disabled={!text.trim()}>{t("send")}</button>
-        {msg && <div className="text-base" style={{ color: "var(--ochre)" }}>{msg}</div>}
+      <form onSubmit={send} className="nb mt-6">
+        <h3>{t("askTitle")}</h3>
+        <textarea rows={3} maxLength={500} placeholder={t("askPlace")} aria-label={t("askTitle")} value={text} onChange={(e) => setText(e.target.value)} required />
+        <div style={{ height: 32 }} />
+        <button className="nb-btn" disabled={!text.trim()}>{t("send")}</button>
+        {msg && <div className="nb-wait" style={{ marginTop: -32, marginBottom: 32 }}>{msg}</div>}
       </form>
 
       {mine.length > 0 && (
-        <div className="mt-3 flex flex-col gap-2">
+        <div className="nb mt-6">
+          <h3>{MY[lang] || MY.en}</h3>
           {mine.map((q) => (
-            <div key={q.id} className="card p-4">
-              <b className="text-base">{q.text}</b>
+            <div key={q.id} style={{ marginBottom: 32 }}>
+              <div style={{ fontWeight: 700 }}>{q.text}</div>
               {q.answer
-                ? <p className="text-base mt-2"><span style={{ color: "var(--leaf)" }}>{t("answerLabel")}:</span> {q.answer} <span className="text-sm" style={{ color: "var(--muted)" }}>({q.answered_by})</span></p>
-                : <p className="text-sm mt-1" style={{ color: "var(--ochre)" }}>{t("waiting")}</p>}
+                ? <div><span className="nb-ans">{t("answerLabel")}:</span> {q.answer} <span style={{ color: "#6b7867" }}>({q.answered_by})</span></div>
+                : <div className="nb-wait">{t("waiting")}</div>}
             </div>
           ))}
         </div>
