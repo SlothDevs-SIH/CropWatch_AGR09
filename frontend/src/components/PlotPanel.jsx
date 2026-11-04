@@ -32,7 +32,7 @@ export default function PlotPanel({ plot, user, onChanged, onPrev, onNext, onClo
       <div className="flex items-center gap-2">
         {onPrev && <button className="btn" onClick={onPrev} aria-label="Previous plot">←</button>}
         {onNext && <button className="btn" onClick={onNext} aria-label="Next plot">→</button>}
-        
+        <button className="btn ml-auto" onClick={onClose} style={{ padding: "10px 16px", fontSize: "1rem" }}>{t("close")}</button>
       </div>
       <h3 className="text-xl font-bold mt-3">{plot.id}</h3>
       <div className="card p-4 mt-3 flex items-center gap-3" style={{ borderColor: lv.color, borderWidth: 2 }}>
@@ -43,6 +43,8 @@ export default function PlotPanel({ plot, user, onChanged, onPrev, onNext, onClo
       <p className="mt-3 text-lg">{t(`reason_${plot.level}`)}</p>
       {plot.cell_m && <p className="mt-1 text-sm" style={{ color: "var(--muted)" }}>{t("plotSize").replaceAll("{m}", plot.cell_m).replace("{ha}", Math.round((plot.cell_m / 100) ** 2))}</p>}
 
+      <p className="mt-3 text-lg font-semibold" style={{ color: lv.color }}>{t(`todo_${plot.level}`)}</p>
+
       {plot.centre && !farmer && (
         <a className="btn btn-primary w-full mt-3 text-center block" style={{ padding: "14px", fontSize: "1.1rem" }} target="_blank" rel="noopener noreferrer"
           href={`https://www.google.com/maps/dir/?api=1&destination=${plot.centre[1]},${plot.centre[0]}&travelmode=driving`}>
@@ -50,6 +52,19 @@ export default function PlotPanel({ plot, user, onChanged, onPrev, onNext, onClo
         </a>
       )}
 
+      {flagged && (farmer || officer) && <CheckForm plotId={plot.id} title={farmer ? t("isStressed") : t("recordVisit")} onDone={onChanged} big />}
+
+      {officer && flagged && (
+        <div className="card p-3 mt-3">
+          <button className="btn btn-primary w-full" disabled={plot.status !== "confirmed" || !!plot.report} onClick={report}>
+            {plot.report ? t("status_reported") : t("reportToDistrict")}
+          </button>
+          {plot.status !== "confirmed" && !plot.report && (
+            <div className="text-xs mt-2" style={{ color: "var(--muted)" }}>A plot can be reported only after the farmer or a field visit confirms stress.</div>
+          )}
+          <div className="text-xs mt-1" style={{ color: "var(--muted)" }}>Reporting tells the district office, with the evidence. It does not file a claim.</div>
+        </div>
+      )}
       {plot.centre && <PictureCompare plot={plot} simple />}
 
       <details className="card p-3 mt-3">
@@ -70,19 +85,6 @@ export default function PlotPanel({ plot, user, onChanged, onPrev, onNext, onClo
         {(officer || farmer) && <button className="btn w-full mt-3 text-sm" onClick={evidence}>Open the evidence pack</button>}
       </details>
 
-      {flagged && (farmer || officer) && <CheckForm plotId={plot.id} title={farmer ? t("isStressed") : t("recordVisit")} onDone={onChanged} big />}
-
-      {officer && flagged && (
-        <div className="card p-3 mt-3">
-          <button className="btn btn-primary w-full" disabled={plot.status !== "confirmed" || !!plot.report} onClick={report}>
-            {plot.report ? t("status_reported") : t("reportToDistrict")}
-          </button>
-          {plot.status !== "confirmed" && !plot.report && (
-            <div className="text-xs mt-2" style={{ color: "var(--muted)" }}>A plot can be reported only after the farmer or a field visit confirms stress.</div>
-          )}
-          <div className="text-xs mt-1" style={{ color: "var(--muted)" }}>Reporting tells the district office, with the evidence. It does not file a claim.</div>
-        </div>
-      )}
       {msg && <div className="text-sm mt-2" style={{ color: "var(--ochre)" }}>{msg}</div>}
 
       {plot.checks?.length > 0 && (

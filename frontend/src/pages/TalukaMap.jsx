@@ -31,6 +31,8 @@ export default function TalukaMap({ name, user, onBack, focus }) {
   const [filter, setFilter] = useState(farmer ? "all" : "flagged");
   const [showList, setShowList] = useState(false);
   const [more, setMore] = useState(false);
+  const [tip, setTip] = useState(() => { try { return !localStorage.getItem("cw_tip"); } catch { return false; } });
+  const closeTip = () => { setTip(false); try { localStorage.setItem("cw_tip", "1"); } catch {} };
   const [base, setBase] = useState(true);                      // satellite picture under the squares
   const [pic, setPic] = useState(null);
   const [bin, setBin] = useState(null);                         // null = live; otherwise the replayed 10-day bin
@@ -275,6 +277,13 @@ export default function TalukaMap({ name, user, onBack, focus }) {
                 </div>
               </div>
             )}
+          </div>
+        )}
+        {tip && !farmer && !plot && (
+          <div className="absolute left-3 right-3 top-32 lg:top-20 lg:left-1/2 lg:right-auto lg:-translate-x-1/2 lg:w-[420px] card p-4" style={{ background: "rgba(24,31,20,.97)", borderColor: "var(--leaf)", borderWidth: 2 }}>
+            <b className="text-lg block">{t("tipTitle")}</b>
+            <p className="text-base mt-1">{t("tipBody")}</p>
+            <button className="btn btn-primary w-full mt-3" style={{ padding: "12px" }} onClick={closeTip}>{t("gotIt")}</button>
           </div>
         )}
         {pic && <button className="btn absolute right-3 bottom-28 text-sm" onClick={() => setBase((b) => !b)}>{base ? t("hidePicture") : t("showPicture")}</button>}
