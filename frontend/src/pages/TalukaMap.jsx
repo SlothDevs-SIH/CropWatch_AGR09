@@ -9,7 +9,7 @@ import { useT } from "@/lib/i18n";
 const STYLE = { version: 8, sources: {}, layers: [{ id: "bg", type: "background", paint: { "background-color": "#0f140c" } }] };
 const LVL = ["coalesce", ["feature-state", "lvl"], ["get", "level"]];          // replay level if set, else the live level
 const COLOR = ["match", LVL, "urgent", LEVELS.urgent.color, "watch", LEVELS.watch.color, "normal", LEVELS.normal.color, "cannot_see", LEVELS.cannot_see.color, LEVELS.not_farmland.color];
-const HEIGHT = ["match", LVL, "urgent", 90, "watch", 55, "normal", 20, "cannot_see", 8, 0];
+const HEIGHT = ["match", LVL, "urgent", 45, "watch", 28, "normal", 10, "cannot_see", 4, 0];   // low blocks, so the satellite picture under them stays visible
 const ORDER = { urgent: 0, watch: 1, cannot_see: 2, normal: 3 };
 const FIRST_REPLAY_BIN = 5;
 const FILTERS = ["flagged", "urgent", "watch", "cannot_see", "all"];
@@ -31,6 +31,8 @@ export default function TalukaMap({ name, user, onBack, focus }) {
   const [filter, setFilter] = useState(farmer ? "all" : "flagged");
   const [showList, setShowList] = useState(false);
   const [more, setMore] = useState(false);
+  const [base, setBase] = useState(true);                      // satellite picture under the squares
+  const [pic, setPic] = useState(null);
   const [bin, setBin] = useState(null);                         // null = live; otherwise the replayed 10-day bin
   const [replayCounts, setReplayCounts] = useState(null);
   const [series, setSeries] = useState(null);
@@ -41,6 +43,12 @@ export default function TalukaMap({ name, user, onBack, focus }) {
 
   const loadGeo = useCallback(() => api(`/api/talukas/${name}`).then(setGeo).catch((e) => setErr(e.message)), [name]);
   useEffect(() => { loadGeo(); }, [loadGeo]);
+  useEffect(() => {
+    api(`/api/imagery/${name}`).then((m) => {
+      const f = m.frames?.now, b = m.bbox;
+      if (f && b) setPic({ url: `/imagery/${m.area || name}/${f.file}`, coords: [[b[0], b[3]], [b[2], b[3]], [b[2], b[1]], [b[0], b[1]]] });
+    }).catch(() => {});
+  }, [name]);
   useEffect(() => { fetch("/api/accuracy").then((r) => r.json()).then((a) => a.thresholds && setTh(a.thresholds)).catch(() => {}); }, []);
 
   const farm = useMemo(() => (geo ? geo.features.filter((f) => f.properties.level !== "not_farmland") : []), [geo]);
@@ -82,9 +90,12 @@ export default function TalukaMap({ name, user, onBack, focus }) {
       map.addSource("cells", { type: "geojson", data: geo, promoteId: "id" });
       map.addLayer({ id: "flat", type: "fill", source: "cells", filter: ["==", ["get", "level"], "not_farmland"], paint: { "fill-color": "#1a2214" } });
       map.addLayer({ id: "cells", type: "fill-extrusion", source: "cells", filter: ["!=", ["get", "level"], "not_farmland"],
-        paint: { "fill-extrusion-color": COLOR, "fill-extrusion-height": 0, "fill-extrusion-opacity": 0.92 } });
+        paint: { "fill-extrusion-color": COLOR, "fill-extrusion-height": 0, "fill-extrusion-opacity": 0.78 } });
+      map.addLayer({ id: "cell-lines", type: "line", source: "cells", filter: ["!=", ["get", "level"], "not_farmland"],
+        paint: { "line-color": "#ffffff", "line-opacity": 0.45, "line-width": ["interpolate", ["linear"], ["zoom"], 10, 0.2, 15, 1.2] } });
       map.addLayer({ id: "sel", type: "fill-extrusion", source: "cells", filter: ["==", ["get", "id"], ""],
-        paint: { "fill-extrusion-color": "#ffffff", "fill-extrusion-height": 130, "fill-extrusion-opacity": 0.45 } });
+        paint: { "fill-extrusion-color": "#ffffff", "fill-extrusion-height": 60, "fill-extrusion-opacity": 0.45 } });
+      map.addControl(new maplibregl.ScaleControl({ maxWidth: 120, unit: "metric" }), "bottom-left");
       map.on("click", "cells", (e) => pickRef.current(e.features[0].properties.id));
       map.on("mouseenter", "cells", () => { map.getCanvas().style.cursor = "pointer"; });
       map.on("mouseleave", "cells", () => { map.getCanvas().style.cursor = ""; });
@@ -103,6 +114,19 @@ export default function TalukaMap({ name, user, onBack, focus }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [!!geo]);
   useEffect(() => { const m = mapRef.current; if (m?.getSource("cells")) m.getSource("cells").setData(geo); }, [geo]);
+  useEffect(() => {                                                                  // the satellite picture goes under everything else
+    const m = mapRef.current;
+    if (!m || !pic) return;
+    const add = () => {
+      if (!m.getSource("pic")) {
+        m.addSource("pic", { type: "image", url: pic.url, coordinates: pic.coords });
+        m.addLayer({ id: "pic", type: "raster", source: "pic" }, "flat");
+      }
+      m.setLayoutProperty("pic", "visibility", base ? "visible" : "none");
+      m.setPaintProperty("flat", "fill-opacity", base ? 0 : 1);
+    };
+    if (m.getLayer("flat")) add(); else m.once("load", add);
+  }, [pic, base, geo]);
   useEffect(() => {
     const m = mapRef.current;
     if (m?.getLayer("sel")) m.setFilter("sel", ["==", ["get", "id"], sel || ""]);
@@ -253,6 +277,7 @@ export default function TalukaMap({ name, user, onBack, focus }) {
             )}
           </div>
         )}
+        {pic && <button className="btn absolute right-3 bottom-28 text-sm" onClick={() => setBase((b) => !b)}>{base ? t("hidePicture") : t("showPicture")}</button>}
         <div className="absolute left-3 top-14 lg:top-3 lg:left-auto lg:right-3 card px-3 py-2 text-xs hidden sm:flex gap-3" style={{ color: "var(--muted)" }}>
           {["urgent", "watch", "normal", "cannot_see"].map((k) => (
             <span key={k} className="flex items-center gap-1 text-sm"><i style={{ background: LEVELS[k].color, width: 12, height: 12, borderRadius: 99, display: "inline-block" }} />{word(k)}</span>

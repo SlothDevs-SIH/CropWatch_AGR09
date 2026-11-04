@@ -40,7 +40,9 @@ button { cursor: pointer; font: inherit; }
 @keyframes slide-in { from { opacity: 0; transform: translateX(28px); } to { opacity: 1; transform: none; } }
 .fade-up { animation: fade-up .7s cubic-bezier(.2,.8,.2,1) both; }
 @keyframes fade-up { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: none; } }
-.maplibregl-ctrl-bottom-left, .maplibregl-ctrl-bottom-right { display: none; }
+.maplibregl-ctrl-bottom-right, .maplibregl-ctrl-attrib { display: none; }
+.maplibregl-ctrl-bottom-left { margin-bottom: 110px; }
+.maplibregl-ctrl-scale { background: rgba(244,239,226,.85); color: #1e2620; border-color: #1e2620; font-size: 12px; font-weight: 600; }
 .scroll-thin::-webkit-scrollbar { width: 8px; } .scroll-thin::-webkit-scrollbar-thumb { background: var(--line); border-radius: 8px; }
 .map-label { color: #fff; font-size: 12px; font-weight: 600; text-shadow: 0 1px 3px #000; pointer-events: none; white-space: nowrap; }
 @media (prefers-reduced-motion: reduce) {

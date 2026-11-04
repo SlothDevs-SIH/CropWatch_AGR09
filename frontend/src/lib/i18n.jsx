@@ -20,7 +20,8 @@ const EN = {
   askCrop: "How is your crop?", f_stressed: "It is in trouble", f_fine: "It is fine", f_not_sure: "I am not sure",
   helpTitle: "Help and questions", faqTitle: "Common questions", askTitle: "Ask us a question", askPlace: "Write your question here", send: "Send", waiting: "Waiting for an answer", answerLabel: "Answer",
   getReport: "Get a report to attach to my claim", showMore: "Show more", updated: "Updated", fieldsBehind: "of the fields are behind a normal year",
-  openInMaps: "Open in Google Maps: go to this plot", questions: "Questions", moreDetails: "More details", nothingToAnswer: "No questions waiting.", answerBtn: "Send answer", fieldsNeedAnswer: "Please tell us how your crop is.",
+  openInMaps: "Open in Google Maps: go to this plot", showPicture: "Show satellite picture", hidePicture: "Hide satellite picture", plotSize: "This square is {m} m × {m} m (about {ha} hectares)",
+  reason_normal: "Looks like a normal year for this time.", reason_watch: "A little behind a normal year for this time.", reason_urgent: "Far behind a normal year for this time.", reason_cannot_see: "Clouds hid this plot, so we cannot judge it.", questions: "Questions", moreDetails: "More details", nothingToAnswer: "No questions waiting.", answerBtn: "Send answer", fieldsNeedAnswer: "Please tell us how your crop is.",
 };
 const MR = {
   district: "जिल्हा", accuracy: "अचूकता", about: "माहिती", reported: "कळवलेले", myPlots: "माझे प्लॉट", myTaluka: "माझा तालुका", claimHelp: "दावा मदत", admin: "प्रशासक",
@@ -41,7 +42,8 @@ const MR = {
   askCrop: "तुमचे पीक कसे आहे?", f_stressed: "अडचणीत आहे", f_fine: "ठीक आहे", f_not_sure: "खात्री नाही",
   helpTitle: "मदत आणि प्रश्न", faqTitle: "नेहमीचे प्रश्न", askTitle: "आम्हाला प्रश्न विचारा", askPlace: "तुमचा प्रश्न इथे लिहा", send: "पाठवा", waiting: "उत्तराची प्रतीक्षा", answerLabel: "उत्तर",
   getReport: "माझ्या दाव्यासोबत जोडण्यासाठी अहवाल मिळवा", showMore: "आणखी दाखवा", updated: "अद्ययावत", fieldsBehind: "शेते नेहमीच्या वर्षापेक्षा मागे आहेत",
-  openInMaps: "Google Maps मध्ये उघडा: या प्लॉटकडे जा", questions: "प्रश्न", moreDetails: "अधिक माहिती", nothingToAnswer: "उत्तर देण्यासाठी प्रश्न नाहीत.", answerBtn: "उत्तर पाठवा", fieldsNeedAnswer: "कृपया तुमचे पीक कसे आहे ते सांगा.",
+  openInMaps: "Google Maps मध्ये उघडा: या प्लॉटकडे जा", showPicture: "उपग्रह चित्र दाखवा", hidePicture: "उपग्रह चित्र लपवा", plotSize: "हा चौरस {m} मी × {m} मी आहे (सुमारे {ha} हेक्टर)",
+  reason_normal: "या वेळेसाठी सामान्य वर्षासारखे दिसते.", reason_watch: "या वेळेसाठी सामान्य वर्षापेक्षा थोडे मागे.", reason_urgent: "या वेळेसाठी सामान्य वर्षापेक्षा खूप मागे.", reason_cannot_see: "ढगांमुळे हा प्लॉट दिसला नाही, म्हणून अंदाज करता येत नाही.", questions: "प्रश्न", moreDetails: "अधिक माहिती", nothingToAnswer: "उत्तर देण्यासाठी प्रश्न नाहीत.", answerBtn: "उत्तर पाठवा", fieldsNeedAnswer: "कृपया तुमचे पीक कसे आहे ते सांगा.",
 };
 
 const Ctx = createContext({ lang: "en", setLang: () => {}, t: (k) => EN[k] || k });

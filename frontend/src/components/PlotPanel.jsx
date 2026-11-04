@@ -40,7 +40,8 @@ export default function PlotPanel({ plot, user, onChanged, onPrev, onNext, onClo
         <b className="text-xl">{t(`off_${plot.level}`)}</b>
         {plot.status !== "none" && <span className="chip ml-auto text-sm">{t(statusKey)}</span>}
       </div>
-      <p className="mt-3 text-base">{plot.reason}</p>
+      <p className="mt-3 text-lg">{t(`reason_${plot.level}`)}</p>
+      {plot.cell_m && <p className="mt-1 text-sm" style={{ color: "var(--muted)" }}>{t("plotSize").replaceAll("{m}", plot.cell_m).replace("{ha}", Math.round((plot.cell_m / 100) ** 2))}</p>}
 
       {plot.centre && !farmer && (
         <a className="btn btn-primary w-full mt-3 text-center block" style={{ padding: "14px", fontSize: "1.1rem" }} target="_blank" rel="noopener noreferrer"
@@ -53,6 +54,7 @@ export default function PlotPanel({ plot, user, onChanged, onPrev, onNext, onClo
 
       <details className="card p-3 mt-3">
         <summary className="text-base font-semibold cursor-pointer">{t("moreDetails")}</summary>
+        <p className="text-sm mt-2">{plot.reason}</p>
         {plot.confidence && <div className="text-sm mt-2" style={{ color: "var(--muted)" }}>Confidence: {plot.confidence}</div>}
       {plot.series_2026 && (
         <div className="card p-3 mt-4">
