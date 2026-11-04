@@ -47,27 +47,17 @@ button { cursor: pointer; font: inherit; }
   *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
 }
 
-/* ---- Help notebook: ruled paper, plain CSS only so it stays light on low-end phones ---- */
-.nb { position: relative; background-color: #f4efe2; color: #1e2620; border-radius: 12px; padding: 0 18px 32px 58px; font-size: 18px; line-height: 32px;
-  background-image: linear-gradient(to right, transparent 46px, #d9544a 46px, #d9544a 48px, transparent 48px), repeating-linear-gradient(to bottom, transparent 0, transparent 31px, #b6c9ad 31px, #b6c9ad 32px);
-  box-shadow: 0 2px 10px rgba(0,0,0,.35); overflow: hidden; }
-.nb::before { content: ""; position: absolute; left: 8px; top: 0; bottom: 0; width: 28px; background: radial-gradient(circle at 14px 50%, #11160e 7px, transparent 8px) 0 0 / 28px 96px repeat-y; }
-.nb h3 { font-family: var(--font-display); font-weight: 700; font-size: 22px; line-height: 32px; padding: 32px 0 0; margin: 0; color: #2f4a35; }
-.nb details { margin: 0; }
-.nb summary { list-style: none; cursor: pointer; display: flex; align-items: flex-start; gap: 12px; font-weight: 600; padding: 0 0 32px; }
-.nb details[open] > summary { padding-bottom: 0; }
-.nb summary::-webkit-details-marker { display: none; }
-.nb summary span { flex: 1; }
-.nb summary::after { content: "+"; font-size: 28px; line-height: 32px; font-weight: 700; color: #5e7a3e; width: 32px; text-align: center; flex-shrink: 0; }
-.nb details[open] > summary::after { content: "\2212"; color: #d9544a; }
-.nb details[open] > summary { color: #2f4a35; }
-.nb summary:focus-visible { outline: 3px solid #5e7a3e; outline-offset: 2px; }
-.nb .nb-a { margin: 0 0 32px; padding-right: 8px; color: #2b362d; }
-.nb textarea { display: block; width: 100%; resize: none; border: 0; outline: none; background-color: transparent; color: #1e2620; font: inherit; line-height: 32px; padding: 0; height: 96px;
-  background-image: repeating-linear-gradient(to bottom, transparent 0, transparent 31px, #b6c9ad 31px, #b6c9ad 32px); background-attachment: local; }
-.nb textarea::placeholder { color: #7d8a78; }
-.nb textarea:focus { background-color: rgba(169,199,90,.18); }
-.nb .nb-btn { display: block; width: 100%; height: 64px; border: 0; border-radius: 10px; background: #2f4a35; color: #f4efe2; font-size: 20px; font-weight: 700; cursor: pointer; margin: 0 0 32px; }
-.nb .nb-btn:disabled { opacity: .45; cursor: default; }
-.nb .nb-wait { color: #b0561c; font-weight: 600; }
-.nb .nb-ans { color: #2f4a35; font-weight: 700; }
+/* ---- Help: questions separated by plain horizontal lines; tap a line to open its answer. CSS only, light on low-end phones ---- */
+.faq-group { font-family: var(--font-display); font-weight: 700; font-size: 22px; color: var(--leaf); margin: 28px 0 6px; }
+.faq { border-top: 2px solid #4d6140; }
+.faq details { border-bottom: 2px solid #4d6140; }
+.faq summary { list-style: none; cursor: pointer; display: flex; align-items: center; gap: 14px; padding: 18px 4px; font-size: 19px; line-height: 1.4; font-weight: 600; color: var(--text); }
+.faq summary::-webkit-details-marker { display: none; }
+.faq summary span { flex: 1; }
+.faq summary::after { content: ""; width: 10px; height: 10px; border-right: 3px solid var(--moss); border-bottom: 3px solid var(--moss); transform: rotate(45deg); margin: -4px 6px 0 0; flex-shrink: 0; }
+.faq details[open] > summary { color: var(--leaf); }
+.faq details[open] > summary::after { transform: rotate(-135deg); margin-top: 4px; border-color: var(--leaf); }
+.faq summary:focus-visible { outline: 3px solid var(--leaf); outline-offset: -3px; }
+.faq .faq-a { margin: 0; padding: 0 4px 20px; font-size: 18px; line-height: 1.55; color: var(--muted); }
+.faq-ask { width: 100%; background: transparent; color: var(--text); border: 0; border-bottom: 2px solid #4d6140; border-top: 2px solid #4d6140; padding: 14px 4px; font: inherit; font-size: 18px; line-height: 1.5; resize: none; outline: none; }
+.faq-ask:focus { border-color: var(--leaf); }

@@ -39,7 +39,7 @@ const GROUPS = {
 };
 const MY = { en: "Your questions", mr: "तुमचे प्रश्न" };
 
-/** Help for farmers, laid out like a ruled notebook: tap a line and the answer opens under it. */
+/** Help for farmers: each question is one line between two rules; tap it and the answer opens underneath. */
 export default function Help() {
   const { t, lang } = useT();
   const [text, setText] = useState("");
@@ -55,42 +55,45 @@ export default function Help() {
 
   return (
     <section className="mt-10" aria-labelledby="help-h">
-      <h2 id="help-h" className="text-2xl font-bold mb-3">{t("helpTitle")}</h2>
+      <h2 id="help-h" className="text-2xl font-bold">{t("helpTitle")}</h2>
 
-      <div className="nb">
-        {(GROUPS[lang] || GROUPS.en).map((g) => (
-          <div key={g.title}>
-            <h3>{g.title}</h3>
+      {(GROUPS[lang] || GROUPS.en).map((g) => (
+        <div key={g.title}>
+          <h3 className="faq-group">{g.title}</h3>
+          <div className="faq">
             {g.items.map(([q, a]) => (
               <details key={q}>
                 <summary><span>{q}</span></summary>
-                <p className="nb-a">{a}</p>
+                <p className="faq-a">{a}</p>
               </details>
             ))}
           </div>
-        ))}
-      </div>
+        </div>
+      ))}
 
-      <form onSubmit={send} className="nb mt-6">
-        <h3>{t("askTitle")}</h3>
-        <textarea rows={3} maxLength={500} placeholder={t("askPlace")} aria-label={t("askTitle")} value={text} onChange={(e) => setText(e.target.value)} required />
-        <div style={{ height: 32 }} />
-        <button className="nb-btn" disabled={!text.trim()}>{t("send")}</button>
-        {msg && <div className="nb-wait" style={{ marginTop: -32, marginBottom: 32 }}>{msg}</div>}
+      <h3 className="faq-group">{t("askTitle")}</h3>
+      <form onSubmit={send}>
+        <textarea className="faq-ask" rows={3} maxLength={500} placeholder={t("askPlace")} aria-label={t("askTitle")} value={text} onChange={(e) => setText(e.target.value)} required />
+        <button className="btn btn-primary w-full mt-3" style={{ padding: "14px", fontSize: "1.1rem" }} disabled={!text.trim()}>{t("send")}</button>
+        {msg && <div className="text-base mt-2" style={{ color: "var(--ochre)" }}>{msg}</div>}
       </form>
 
       {mine.length > 0 && (
-        <div className="nb mt-6">
-          <h3>{MY[lang] || MY.en}</h3>
-          {mine.map((q) => (
-            <div key={q.id} style={{ marginBottom: 32 }}>
-              <div style={{ fontWeight: 700 }}>{q.text}</div>
-              {q.answer
-                ? <div><span className="nb-ans">{t("answerLabel")}:</span> {q.answer} <span style={{ color: "#6b7867" }}>({q.answered_by})</span></div>
-                : <div className="nb-wait">{t("waiting")}</div>}
-            </div>
-          ))}
-        </div>
+        <>
+          <h3 className="faq-group">{MY[lang] || MY.en}</h3>
+          <div className="faq">
+            {mine.map((q) => (
+              <details key={q.id} open={!!q.answer}>
+                <summary><span>{q.text}</span></summary>
+                <p className="faq-a">
+                  {q.answer
+                    ? <><b style={{ color: "var(--leaf)" }}>{t("answerLabel")}:</b> {q.answer} ({q.answered_by})</>
+                    : <b style={{ color: "var(--ochre)" }}>{t("waiting")}</b>}
+                </p>
+              </details>
+            ))}
+          </div>
+        </>
       )}
     </section>
   );
