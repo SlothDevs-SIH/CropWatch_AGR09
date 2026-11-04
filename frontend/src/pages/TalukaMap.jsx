@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import maplibregl from "maplibre-gl";
 import { api } from "@/api";
 import PlotPanel from "@/components/PlotPanel";
+import VillagePanel from "@/components/VillagePanel";
 import { LEVELS } from "@/lib/levels";
 import { BIN_COUNT, DEFAULT_TH, ORDER_BIN, binDate, levelAt } from "@/lib/replay";
 import { useT } from "@/lib/i18n";
@@ -33,6 +34,10 @@ export default function TalukaMap({ name, user, onBack, focus }) {
   const [more, setMore] = useState(false);
   const [tip, setTip] = useState(() => { try { return !localStorage.getItem("cw_tip"); } catch { return false; } });
   const closeTip = () => { setTip(false); try { localStorage.setItem("cw_tip", "1"); } catch {} };
+  const [mode, setMode] = useState(farmer ? "plot" : "village");   // what a tap on the map selects
+  const modeRef = useRef(mode); modeRef.current = mode;
+  const [vsel, setVsel] = useState(null);                         // the selected village
+  const villagesRef = useRef(null);
   const [base, setBase] = useState(true);                      // satellite picture under the squares
   const [pic, setPic] = useState(null);
   const [bin, setBin] = useState(null);                         // null = live; otherwise the replayed 10-day bin
@@ -94,17 +99,27 @@ export default function TalukaMap({ name, user, onBack, focus }) {
       map.addLayer({ id: "cells", type: "fill-extrusion", source: "cells", filter: ["!=", ["get", "level"], "not_farmland"],
         paint: { "fill-extrusion-color": COLOR, "fill-extrusion-height": 0, "fill-extrusion-opacity": 0.78 } });
       map.addLayer({ id: "cell-lines", type: "line", source: "cells", filter: ["!=", ["get", "level"], "not_farmland"],
-        paint: { "line-color": "#ffffff", "line-opacity": 0.45, "line-width": ["interpolate", ["linear"], ["zoom"], 10, 0.2, 15, 1.2] } });
+        paint: { "line-color": "#ffffff", "line-opacity": 0.6, "line-width": ["interpolate", ["linear"], ["zoom"], 10, 0.3, 15, 1.5] } });
       map.addLayer({ id: "sel", type: "fill-extrusion", source: "cells", filter: ["==", ["get", "id"], ""],
         paint: { "fill-extrusion-color": "#ffffff", "fill-extrusion-height": 60, "fill-extrusion-opacity": 0.45 } });
-      fetch("/jalna_villages.json").then((r) => r.json()).then((fc) => {                  // village outlines (Census 2011, open data) drawn as dashed lines
+      fetch("/jalna_villages.json").then((r) => r.json()).then((fc) => {                  // village outlines (Census 2011, open data)
         if (!mapRef.current || map.getSource("villages")) return;
+        villagesRef.current = fc;
+        const vf = ["==", ["get", "taluka"], geo.properties.parent_taluka], none = ["==", ["get", "id"], ""], zoomW = (a, b) => ["interpolate", ["linear"], ["zoom"], 9, a, 14, b];
         map.addSource("villages", { type: "geojson", data: fc });
-        map.addLayer({ id: "village-lines", type: "line", source: "villages", filter: ["==", ["get", "taluka"], geo.properties.parent_taluka],
-          paint: { "line-color": "#fff6cf", "line-opacity": 0.85, "line-width": ["interpolate", ["linear"], ["zoom"], 9, 0.6, 14, 2], "line-dasharray": [3, 2] } });
+        map.addLayer({ id: "village-fill", type: "fill", source: "villages", filter: vf, paint: { "fill-color": "#000000", "fill-opacity": 0.01 } });
+        map.addLayer({ id: "village-case", type: "line", source: "villages", filter: vf, paint: { "line-color": "#00141a", "line-opacity": 0.75, "line-width": zoomW(3, 6) } });   // dark edge so the line shows on bright and dark ground
+        map.addLayer({ id: "village-lines", type: "line", source: "villages", filter: vf, paint: { "line-color": "#00e5ff", "line-opacity": 1, "line-width": zoomW(1.4, 3.2) } });
+        map.addLayer({ id: "village-sel-fill", type: "fill", source: "villages", filter: none, paint: { "fill-color": "#ffe600", "fill-opacity": 0.2 } });
+        map.addLayer({ id: "village-sel", type: "line", source: "villages", filter: none, paint: { "line-color": "#ffe600", "line-width": 5, "line-opacity": 1 } });
       }).catch(() => {});
       map.addControl(new maplibregl.ScaleControl({ maxWidth: 120, unit: "metric" }), "bottom-left");
-      map.on("click", "cells", (e) => pickRef.current(e.features[0].properties.id));
+      map.on("click", "cells", (e) => { if (modeRef.current === "plot") pickRef.current(e.features[0].properties.id); });
+      map.on("click", (e) => {
+        if (modeRef.current !== "village" || !map.getLayer("village-fill")) return;
+        const f = map.queryRenderedFeatures(e.point, { layers: ["village-fill"] })[0];
+        if (f) villageRef.current(f.properties.id);
+      });
       map.on("mouseenter", "cells", () => { map.getCanvas().style.cursor = "pointer"; });
       map.on("mouseleave", "cells", () => { map.getCanvas().style.cursor = ""; });
       const cam = map.cameraForBounds(ext, { padding: 40 });
@@ -179,6 +194,24 @@ export default function TalukaMap({ name, user, onBack, focus }) {
     api(`/api/plots/${id}`).then(setPlot).catch((e) => setErr(e.message));
     fly(f);
   };
+  const villageRef = useRef();
+  villageRef.current = (id) => {
+    const f = villagesRef.current?.features.find((x) => x.properties.id === id);
+    if (!f) return;
+    const pts = (f.geometry.type === "Polygon" ? [f.geometry.coordinates] : f.geometry.coordinates).flat(2);
+    const xs = pts.map((p) => p[0]), ys = pts.map((p) => p[1]);
+    const bb = [[Math.min(...xs), Math.min(...ys)], [Math.max(...xs), Math.max(...ys)]];
+    setVsel({ ...f.properties, centre: [(bb[0][0] + bb[1][0]) / 2, (bb[0][1] + bb[1][1]) / 2], bb });
+    setPlot(null); setSel(null); setShowList(false);
+    const map = mapRef.current;
+    if (map) { token.current++; map.stop(); map.fitBounds(bb, { padding: 70, pitch: 35, bearing: -10, duration: 1800, maxZoom: 15.5, essential: true }); }
+  };
+  useEffect(() => {
+    const m = mapRef.current;
+    if (!m?.getLayer("village-sel")) return;
+    const f = ["==", ["get", "id"], vsel?.id || ""];
+    m.setFilter("village-sel", f); m.setFilter("village-sel-fill", f);
+  }, [vsel]);
   const pick = (id) => pickRef.current(id);
   const focused = useRef(false);
   useEffect(() => {                                        // opened from a link to one plot (for example the reported list)
@@ -189,7 +222,8 @@ export default function TalukaMap({ name, user, onBack, focus }) {
     const i = list.findIndex((f) => f.properties.id === sel);
     pick(list[(i + d + list.length) % list.length].properties.id);
   };
-  const close = () => { setSel(null); setPlot(null); showOverview(); };
+  const close = () => { setSel(null); setPlot(null); if (!vsel) showOverview(); };
+  const closeVillage = () => { setVsel(null); showOverview(); };
   const changed = () => { loadGeo(); if (sel) api(`/api/plots/${sel}`).then(setPlot); };
 
   if (err && !geo) return <div className="p-8" style={{ color: "var(--rust)" }}>{err}</div>;
@@ -293,6 +327,14 @@ export default function TalukaMap({ name, user, onBack, focus }) {
             <button className="btn btn-primary w-full mt-3" style={{ padding: "12px" }} onClick={closeTip}>{t("gotIt")}</button>
           </div>
         )}
+        {!farmer && (
+          <div className="absolute right-3 bottom-40 card p-2 flex items-center gap-1" style={{ background: "rgba(24,31,20,.95)" }}>
+            <span className="text-sm px-1" style={{ color: "var(--muted)" }}>{t("tapSelects")}</span>
+            {[["village", "tapVillage"], ["plot", "tapPlot2"]].map(([k, l]) => (
+              <button key={k} className="chip text-sm" onClick={() => setMode(k)} style={{ padding: "6px 12px", background: mode === k ? "var(--leaf)" : "transparent", color: mode === k ? "#12170e" : "var(--text)" }}>{t(l)}</button>
+            ))}
+          </div>
+        )}
         {pic && <button className="btn absolute right-3 bottom-28 text-sm" onClick={() => setBase((b) => !b)}>{base ? t("hidePicture") : t("showPicture")}</button>}
         <div className="absolute left-3 top-14 lg:top-3 lg:left-auto lg:right-3 card px-3 py-2 text-xs hidden sm:flex gap-3" style={{ color: "var(--muted)" }}>
           {["urgent", "watch", "normal", "cannot_see"].map((k) => (
@@ -307,10 +349,12 @@ export default function TalukaMap({ name, user, onBack, focus }) {
         </div>
       )}
 
-      {plot && (
+      {(plot || vsel) && (
         <aside className="absolute z-10 inset-x-0 bottom-0 h-[72%] border-t rounded-t-2xl lg:static lg:inset-auto lg:h-auto lg:w-[380px] lg:shrink-0 lg:border-t-0 lg:border-l lg:rounded-none min-h-0"
           style={{ borderColor: "var(--line)", background: "var(--panel)" }}>
-          <PlotPanel plot={plot} user={user} onChanged={changed} onPrev={() => step(-1)} onNext={() => step(1)} onClose={close} />
+          {plot
+            ? <PlotPanel plot={plot} user={user} onChanged={changed} onPrev={() => step(-1)} onNext={() => step(1)} onClose={close} />
+            : <VillagePanel village={vsel} plots={farm.filter((f) => f.properties.village_id === vsel.id).map((f) => f.properties)} onOpenPlot={(id) => pickRef.current(id)} onClose={closeVillage} />}
         </aside>
       )}
     </div>

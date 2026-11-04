@@ -34,12 +34,12 @@ def _villages():
     if _VILL is None:
         fc = json.loads((ROOT / "data" / "jalna_villages.geojson").read_text(encoding="utf-8"))
         geoms = [shape(f["geometry"]) for f in fc["features"]]
-        _VILL = (STRtree(geoms), [f["properties"]["name"] for f in fc["features"]])
+        _VILL = (STRtree(geoms), [(f["properties"]["name"], f["properties"]["id"]) for f in fc["features"]])
     return _VILL
 
 
 def locate_villages(bbox, R, C, inside):
-    """{(row, col): village name} for the cells inside the taluka: the village whose outline holds the cell centre, else the nearest one."""
+    """{(row, col): (village name, village id)} for the cells inside the taluka: the village whose outline holds the cell centre, else the nearest one."""
     tree, names = _villages()
     w, s, e, n = bbox
     dx, dy = (e - w) / C, (n - s) / R
@@ -123,7 +123,7 @@ def build_one(name, spec, th, align):
                 continue                                                            # outside the taluka: not drawn, not counted
             pid = f"{spec['prefix']}-r{r:0{width}d}c{c:0{width}d}"
             farm = bool(mask[r, c] and has_base[r, c])
-            props = {"id": pid, "taluka": spec["taluka"], "area": name, "kind": spec["kind"], "row": r, "col": c, "farmland": farm, "village": village_of.get((r, c))}
+            props = {"id": pid, "taluka": spec["taluka"], "area": name, "kind": spec["kind"], "row": r, "col": c, "farmland": farm, "village": (village_of.get((r, c)) or (None, None))[0], "village_id": (village_of.get((r, c)) or (None, None))[1]}
             if not farm:
                 props["level"] = "not_farmland"
                 counts["not_farmland"] += 1
